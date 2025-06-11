@@ -1,0 +1,64 @@
+{
+  "name": "@your-org/quickbase-mcp-server",
+  "version": "1.0.0",
+  "description": "A comprehensive Model Context Protocol (MCP) server for QuickBase integration with maximum flexibility. Supports all QuickBase operations including tables, fields, records, relationships, and reports.",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --skipLibCheck",
+    "start": "node dist/index.js",
+    "dev": "tsc --skipLibCheck --watch & node --watch dist/index.js",
+    "test": "node test-basic-api.js",
+    "test:jest": "jest",
+    "setup": "node setup.js",
+    "prepublishOnly": "npm run build && npm run test",
+    "clean": "rm -rf dist"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE",
+    "env.example"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0"
+  },
+  "keywords": [
+    "mcp", 
+    "quickbase", 
+    "api", 
+    "database", 
+    "model-context-protocol",
+    "automation",
+    "integration",
+    "crm",
+    "no-code",
+    "low-code"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/quickbase-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/quickbase-mcp-server/issues"
+  },
+  "homepage": "https://github.com/your-username/quickbase-mcp-server#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+} 
