@@ -74,6 +74,31 @@ const CreateRelationshipSchema = z.object({
   foreignKeyFieldId: z.number().describe('Foreign key field ID in child table')
 });
 
+const CreateAdvancedRelationshipSchema = z.object({
+  parentTableId: z.string().describe('Parent table ID'),
+  childTableId: z.string().describe('Child table ID'),
+  referenceFieldLabel: z.string().describe('Label for the reference field to create'),
+  lookupFields: z.array(z.object({
+    parentFieldId: z.number().describe('Field ID in parent table to lookup'),
+    childFieldLabel: z.string().describe('Label for lookup field in child table')
+  })).optional().describe('Lookup fields to create automatically'),
+  relationshipType: z.enum(['one-to-many', 'many-to-many']).default('one-to-many').describe('Type of relationship')
+});
+
+const CreateLookupFieldSchema = z.object({
+  childTableId: z.string().describe('Child table ID where lookup field will be created'),
+  parentTableId: z.string().describe('Parent table ID to lookup from'),
+  referenceFieldId: z.number().describe('Reference field ID in child table'),
+  parentFieldId: z.number().describe('Field ID in parent table to lookup'),
+  lookupFieldLabel: z.string().describe('Label for the new lookup field')
+});
+
+const ValidateRelationshipSchema = z.object({
+  parentTableId: z.string().describe('Parent table ID'),
+  childTableId: z.string().describe('Child table ID'),
+  foreignKeyFieldId: z.number().describe('Foreign key field ID to validate')
+});
+
 // Define all MCP tools
 export const quickbaseTools: Tool[] = [
   // ========== APPLICATION TOOLS ==========
@@ -388,7 +413,110 @@ export const quickbaseTools: Tool[] = [
       },
       required: ['reportId', 'tableId']
     }
-  }
+  },
+
+  // ========== ENHANCED RELATIONSHIP TOOLS ==========
+  {
+    name: 'quickbase_create_advanced_relationship',
+    description: 'Create a comprehensive table relationship with automatic lookup fields',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        parentTableId: { type: 'string', description: 'Parent table ID' },
+        childTableId: { type: 'string', description: 'Child table ID' },
+        referenceFieldLabel: { type: 'string', description: 'Label for the reference field to create' },
+        lookupFields: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              parentFieldId: { type: 'number', description: 'Field ID in parent table to lookup' },
+              childFieldLabel: { type: 'string', description: 'Label for lookup field in child table' }
+            },
+            required: ['parentFieldId', 'childFieldLabel']
+          },
+          description: 'Lookup fields to create automatically'
+        },
+        relationshipType: { 
+          type: 'string', 
+          enum: ['one-to-many', 'many-to-many'], 
+          default: 'one-to-many',
+          description: 'Type of relationship' 
+        }
+      },
+      required: ['parentTableId', 'childTableId', 'referenceFieldLabel']
+    }
+  },
+
+  {
+    name: 'quickbase_create_lookup_field',
+    description: 'Create a lookup field to pull data from a related table',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        childTableId: { type: 'string', description: 'Child table ID where lookup field will be created' },
+        parentTableId: { type: 'string', description: 'Parent table ID to lookup from' },
+        referenceFieldId: { type: 'number', description: 'Reference field ID in child table' },
+        parentFieldId: { type: 'number', description: 'Field ID in parent table to lookup' },
+        lookupFieldLabel: { type: 'string', description: 'Label for the new lookup field' }
+      },
+      required: ['childTableId', 'parentTableId', 'referenceFieldId', 'parentFieldId', 'lookupFieldLabel']
+    }
+  },
+
+  {
+    name: 'quickbase_validate_relationship',
+    description: 'Validate the integrity of a table relationship',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        parentTableId: { type: 'string', description: 'Parent table ID' },
+        childTableId: { type: 'string', description: 'Child table ID' },
+        foreignKeyFieldId: { type: 'number', description: 'Foreign key field ID to validate' }
+      },
+      required: ['parentTableId', 'childTableId', 'foreignKeyFieldId']
+    }
+  },
+
+  {
+    name: 'quickbase_get_relationship_details',
+    description: 'Get detailed information about table relationships including lookup fields',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID to analyze relationships for' },
+        includeFields: { type: 'boolean', default: true, description: 'Include related field details' }
+      },
+      required: ['tableId']
+    }
+  },
+
+  {
+    name: 'quickbase_create_junction_table',
+    description: 'Create a junction table for many-to-many relationships',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        junctionTableName: { type: 'string', description: 'Name for the junction table' },
+        table1Id: { type: 'string', description: 'First table ID' },
+        table2Id: { type: 'string', description: 'Second table ID' },
+        table1FieldLabel: { type: 'string', description: 'Label for reference to first table' },
+        table2FieldLabel: { type: 'string', description: 'Label for reference to second table' },
+        additionalFields: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string' },
+              fieldType: { type: 'string' }
+            }
+          },
+          description: 'Additional fields for the junction table'
+        }
+      },
+      required: ['junctionTableName', 'table1Id', 'table2Id', 'table1FieldLabel', 'table2FieldLabel']
+    }
+  },
 ];
 
 // Export schemas for validation
@@ -402,5 +530,8 @@ export {
   UpdateRecordSchema,
   BulkCreateSchema,
   SearchRecordsSchema,
-  CreateRelationshipSchema
+  CreateRelationshipSchema,
+  CreateAdvancedRelationshipSchema,
+  CreateLookupFieldSchema,
+  ValidateRelationshipSchema
 }; 
