@@ -1,5 +1,5 @@
 {
-  "name": "@your-org/quickbase-mcp-server",
+  "name": "quickbase-mcp-server",
   "version": "1.0.0",
   "description": "A comprehensive Model Context Protocol (MCP) server for QuickBase integration with maximum flexibility. Supports all QuickBase operations including tables, fields, records, relationships, and reports.",
   "main": "dist/index.js",
@@ -45,16 +45,16 @@
     "no-code",
     "low-code"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Lawrence Cirillo",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/quickbase-mcp-server.git"
+    "url": "https://github.com/LawrenceCirillo/QuickBase-MCP-Server.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/quickbase-mcp-server/issues"
+    "url": "https://github.com/LawrenceCirillo/QuickBase-MCP-Server/issues"
   },
-  "homepage": "https://github.com/your-username/quickbase-mcp-server#readme",
+  "homepage": "https://github.com/LawrenceCirillo/QuickBase-MCP-Server#readme",
   "engines": {
     "node": ">=18.0.0"
   },
