@@ -57,9 +57,9 @@ cp env.example .env
 3. **Configure your QuickBase credentials in `.env`:**
 ```bash
 # QuickBase Configuration
-QB_REALM=seanngates.quickbase.com
+QB_REALM=yourname.quickbase.com
 QB_USER_TOKEN=your_quickbase_user_token_here
-QB_APP_ID=btr3r3fk5
+QB_APP_ID=yourid
 
 # Optional: Default settings
 QB_DEFAULT_TIMEOUT=30000
@@ -102,9 +102,9 @@ Add to your MCP client configuration (e.g., Claude Desktop):
       "command": "node",
       "args": ["/path/to/quickbase-mcp-server/dist/index.js"],
       "env": {
-        "QB_REALM": "seanngates.quickbase.com",
+        "QB_REALM": "yourname.quickbase.com",
         "QB_USER_TOKEN": "your_token_here",
-        "QB_APP_ID": "btr3r3fk5"
+        "QB_APP_ID": "yourid"
       }
     }
   }
@@ -268,15 +268,6 @@ This server provides the maximum flexibility for QuickBase operations by:
 4. **Bulk Operations** - Efficient bulk record operations
 5. **Advanced Querying** - Full QuickBase query syntax support
 6. **Error Handling** - Comprehensive error handling and retry logic
-
-## Your QuickBase Application
-
-Based on your mapping file, you have:
-- **App ID**: `btr3r3fk5`
-- **Realm**: `seanngates.quickbase.com`
-- **Tables**: Leads, Clients, Orders, Sales Representatives, Employees, etc.
-
-This server can help you implement the relationships and new fields defined in your mapping file.
 
 ## License
 
