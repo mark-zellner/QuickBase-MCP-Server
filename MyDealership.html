@@ -413,6 +413,31 @@
             }
         };
 
+        // RESILIENT LOADER - Learn from AGENTS.md authentication strategy
+        // Strategy: (1) QuickBase code page script tag → (2) fetch+eval fallback
+        //           (3) local file (dev) → (4) shim client
+        (function loadQuickBaseClient(){
+            const IS_QB = /quickbase\.com$/i.test(location.hostname) || location.hostname.includes('quickbase.com');
+            const CODEPAGE = '/db/bvhuaz7pn?a=dbpage&pageID=9'; // Update with your Codepage Hero page ID
+            const LOCAL = 'quickbase_codepage_hero.js';
+
+            function attemptScript(src){ return new Promise(r=>{ const s=document.createElement('script'); s.src=src; s.onload=()=>r(true); s.onerror=()=>r(false); document.head.appendChild(s); }); }
+            async function attemptFetchEval(src){ try{ const resp=await fetch(src,{credentials:'include'}); if(!resp.ok) return false; let txt=await resp.text(); if(/<script/i.test(txt)){ const m=txt.match(/<script[^>]*>([\s\S]*?)<\/script>/i); if(m) txt=m[1]; } if(!/class\s+client|function\s+client/.test(txt)) return false; (0,eval)(txt); return true; }catch(e){ return false; } }
+            function exportClient(tag){ if(typeof client!=='undefined'){ window.qbClient=client; window.Client=client; console.log('[QuickBaseClient] exported ('+tag+')'); return true; } return false; }
+            (async function run(){
+                if(IS_QB){
+                    if(await attemptScript(CODEPAGE) && exportClient('script')) return;
+                    if(await attemptFetchEval(CODEPAGE) && exportClient('fetch-eval')) return;
+                    if(await attemptScript(LOCAL) && exportClient('local')) return;
+                } else {
+                    if(await attemptScript(LOCAL) && exportClient('local')) return;
+                    if(await attemptScript(CODEPAGE) && exportClient('codepage-dev')) return;
+                }
+                console.error('[QuickBaseClient] All strategies failed - using shim');
+                window.qbClient = class { constructor(){this.mode='shim';} async post(){throw new Error('shim');} async get(){throw new Error('shim');} };
+            })();
+        })();
+
         // Vehicle data for demo purposes
         const vehicleData = {
             'toyota-camry': { make: 'Toyota', model: 'Camry', msrp: 28000, image: '🚗' },
@@ -563,7 +588,7 @@
             updateVehicleMSRP();
         }
 
-        // QuickBase Integration Functions
+        // QuickBase Integration Functions - Updated with proper authentication
         async function saveToQuickBase() {
             if (!currentPricingData) {
                 showSaveStatus('No pricing data to save', 'error');
@@ -587,20 +612,22 @@
                     [CONFIG.fields.vehicleModel]: { value: currentPricingData.vehicleModel }
                 };
 
-                // For QuickBase codepage context, use the available QB API
-                if (typeof qdb !== 'undefined' && qdb.api) {
-                    // Using QuickBase JavaScript API (available in codepages)
+                // Use session authentication when embedded in QuickBase
+                if (typeof window.qbClient !== 'undefined' && window.qbClient.mode !== 'shim') {
+                    // Using QuickBase client with session authentication
+                    const client = new window.qbClient();
+                    await client.post(`records`, {
+                        to: CONFIG.pricingTableId,
+                        data: [recordData]
+                    });
+                    showSaveStatus(`✅ Saved successfully! Record created.`, 'success');
+                } else if (typeof qdb !== 'undefined' && qdb.api) {
+                    // Fallback: Using QuickBase JavaScript API (available in codepages)
                     const response = await qdb.api.addRecord(CONFIG.pricingTableId, recordData);
                     showSaveStatus(`✅ Saved successfully! Record ID: ${response.recordId}`, 'success');
                 } else {
-                    // Fallback: Try using fetch with QuickBase REST API
-                    // This would require proper authentication setup
-                    const apiResponse = await saveViaRESTAPI(recordData);
-                    if (apiResponse.success) {
-                        showSaveStatus('✅ Saved to QuickBase successfully!', 'success');
-                    } else {
-                        throw new Error(apiResponse.error || 'Save failed');
-                    }
+                    // Last resort: Show authentication error
+                    throw new Error('QuickBase client not available. Please ensure you are accessing this page from within QuickBase or configure authentication properly.');
                 }
 
             } catch (error) {
@@ -610,40 +637,6 @@
                 // Reset button
                 saveButton.disabled = false;
                 saveButton.textContent = '💾 Save to QuickBase';
-            }
-        }
-
-        async function saveViaRESTAPI(recordData) {
-            // This is a fallback implementation for when running outside QuickBase
-            // In a real QuickBase codepage, the qdb.api would be used instead
-
-            try {
-                // Get QuickBase configuration from environment or user input
-                const realm = 'your-realm.quickbase.com'; // Replace with actual realm
-                const userToken = 'your-user-token'; // Replace with actual token
-
-                const response = await fetch(`https://api.quickbase.com/v1/records`, {
-                    method: 'POST',
-                    headers: {
-                        'QB-Realm-Hostname': realm,
-                        'Authorization': `QB-USER-TOKEN ${userToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        to: CONFIG.pricingTableId,
-                        data: [recordData]
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const result = await response.json();
-                return { success: true, data: result };
-
-            } catch (error) {
-                return { success: false, error: error.message };
             }
         }
 
