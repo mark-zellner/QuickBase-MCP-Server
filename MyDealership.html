@@ -413,12 +413,12 @@
             }
         };
 
-        // RESILIENT LOADER - Learn from AGENTS.md authentication strategy
+        // RESILIENT LOADER - Session Authentication Strategy (NO USER TOKENS)
         // Strategy: (1) QuickBase code page script tag → (2) fetch+eval fallback
         //           (3) local file (dev) → (4) shim client
         (function loadQuickBaseClient(){
             const IS_QB = /quickbase\.com$/i.test(location.hostname) || location.hostname.includes('quickbase.com');
-            const CODEPAGE = '/db/bvhuaz7pn?a=dbpage&pageID=9'; // Update with your Codepage Hero page ID
+            const CODEPAGE = '/db/bvhuaz7pn?a=dbpage&pageID=3'; // Codepage Hero library at pageID=3
             const LOCAL = 'quickbase_codepage_hero.js';
 
             function attemptScript(src){ return new Promise(r=>{ const s=document.createElement('script'); s.src=src; s.onload=()=>r(true); s.onerror=()=>r(false); document.head.appendChild(s); }); }

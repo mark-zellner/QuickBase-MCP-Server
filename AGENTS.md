@@ -149,3 +149,119 @@ Uses QB-USER-TOKEN in Authorization header with realm hostname.
 - `src/quickbase/client.ts`: API client
 - `src/tools/index.ts`: Tool definitions
 - `src/types/quickbase.ts`: Data schemas
+
+---
+
+## 🔐 Session Authentication for Codepages
+
+**IMPORTANT**: When building QuickBase codepages, **ALWAYS use session authentication** - **NEVER use user tokens** in embedded codepages.
+
+### Why Session Auth?
+
+- **Automatic**: No manual token management when embedded in QuickBase
+- **Secure**: Tied to user's active session
+- **Seamless**: Works transparently when codepage is loaded
+- **Best Practice**: Industry standard for embedded applications
+
+### ❌ NEVER Use User Tokens in Codepages
+
+```javascript
+// WRONG - Don't do this in codepages
+const response = await fetch('https://api.quickbase.com/v1/records', {
+    headers: {
+        'Authorization': `QB-USER-TOKEN ${userToken}`, // ❌ BAD
+        'QB-Realm-Hostname': realm
+    }
+});
+```
+
+### ✅ CORRECT - Use Session Authentication
+
+```javascript
+// CORRECT - Session auth in codepages
+(function loadQuickBaseClient(){
+    const IS_QB = /quickbase\.com$/i.test(location.hostname);
+    const CODEPAGE = '/db/[realm]?a=dbpage&pageID=[hero_page_id]';
+    const LOCAL = 'quickbase_codepage_hero.js';
+
+    // ... resilient loader implementation ...
+
+    (async function run(){
+        if (IS_QB) {
+            if (await attemptScript(CODEPAGE) && exportClient('script')) return;
+            // ... other strategies ...
+        }
+        // ... fallback to shim ...
+    })();
+})();
+
+// Then use the client
+async function saveData(tableId, recordData) {
+    if (typeof window.qbClient !== 'undefined' && window.qbClient.mode !== 'shim') {
+        const client = new window.qbClient();
+        return await client.post('records', {
+            to: tableId,
+            data: [recordData]
+        });
+    }
+}
+```
+
+### Codepage Hero Deployment
+
+1. **Deploy Codepage Hero**: Create a separate QuickBase codepage with `quickbase_codepage_hero.js`
+2. **Note Page ID**: Record the assigned page ID (e.g., pageID=3)
+3. **Reference in Code**: Use `/db/[realm]?a=dbpage&pageID=[id]` in your codepage
+
+### Save Data Example
+
+```javascript
+const FIELD_IDS = {
+    name: 6,
+    email: 7,
+    amount: 8
+};
+
+async function saveToQuickBase() {
+    const recordData = {
+        [FIELD_IDS.name]: { value: 'John Doe' },
+        [FIELD_IDS.email]: { value: 'john@example.com' },
+        [FIELD_IDS.amount]: { value: 150.00 }
+    };
+
+    try {
+        const client = new window.qbClient();
+        const response = await client.post('records', {
+            to: 'your_table_id',
+            data: [recordData]
+        });
+        console.log('Saved successfully:', response);
+    } catch (error) {
+        console.error('Save failed:', error);
+    }
+}
+```
+
+### Look Up Data Example
+
+```javascript
+async function findRecords(tableId, searchTerm) {
+    const client = new window.qbClient();
+    const response = await client.get('records', {
+        from: tableId,
+        where: `{6.EX.'${searchTerm}'}`, // Field 6 contains search term
+        select: [6, 7, 8] // Return specific fields
+    });
+    return response.data;
+}
+```
+
+### Key Takeaways
+
+- **Session Auth Only**: Never use user tokens in codepages
+- **Codepage Hero**: Deploy as separate codepage, reference by pageID
+- **Field IDs**: Always use numeric field IDs, never names
+- **Error Handling**: Check if client is available before using
+- **Environment Aware**: Code works in both QuickBase and development
+
+See `MyDealership.html` for a complete working example of session authentication in a codepage.
