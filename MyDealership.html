@@ -245,18 +245,28 @@
             display: block;
         }
 
-        @media (max-width: 768px) {
-            .calculator-grid {
-                grid-template-columns: 1fr;
-            }
+        .save-section {
+            margin-top: 30px;
+            text-align: center;
+        }
 
-            .header h1 {
-                font-size: 2em;
-            }
+        #saveToQB {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            display: none;
+        }
 
-            .calculator-section {
-                padding: 20px;
-            }
+        #saveStatus {
+            margin-top: 15px;
+            font-weight: 600;
+            min-height: 20px;
+        }
+
+        #saveStatus.success {
+            color: #28a745;
+        }
+
+        #saveStatus.error {
+            color: #dc3545;
         }
     </style>
 </head>
@@ -349,6 +359,13 @@
                                 <!-- Breakdown items will be populated by JavaScript -->
                             </div>
                         </div>
+
+                        <div class="save-section">
+                            <button type="button" id="saveToQB" class="calculate-btn" style="display: none;">
+                                💾 Save to QuickBase
+                            </button>
+                            <div id="saveStatus"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -411,10 +428,16 @@
         const msrpInput = document.getElementById('msrp');
         const results = document.getElementById('results');
         const loading = document.getElementById('loading');
+        const saveButton = document.getElementById('saveToQB');
+        const saveStatus = document.getElementById('saveStatus');
+
+        // Store current calculation results
+        let currentPricingData = null;
 
         // Event Listeners
         vehicleSelect.addEventListener('change', updateVehicleMSRP);
         form.addEventListener('submit', calculatePricing);
+        saveButton.addEventListener('click', saveToQuickBase);
 
         function updateVehicleMSRP() {
             const selectedVehicle = vehicleSelect.value;
@@ -431,6 +454,7 @@
             results.style.display = 'none';
 
             // Get form values
+            const selectedVehicle = vehicleSelect.value;
             const msrp = Number.parseFloat(document.getElementById('msrp').value) || 0;
             const discount = Number.parseFloat(document.getElementById('discount').value) || 0;
             const financingRate = Number.parseFloat(document.getElementById('financingRate').value) || 0;
@@ -439,13 +463,13 @@
 
             // AI-powered pricing calculation
             setTimeout(() => {
-                performPricingCalculation(msrp, discount, financingRate, tradeInValue, loanTerm);
+                performPricingCalculation(selectedVehicle, msrp, discount, financingRate, tradeInValue, loanTerm);
                 loading.classList.remove('show');
                 results.style.display = 'block';
             }, 1500); // Simulate AI processing time
         }
 
-        function performPricingCalculation(msrp, discount, financingRate, tradeInValue, loanTerm) {
+        function performPricingCalculation(selectedVehicle, msrp, discount, financingRate, tradeInValue, loanTerm) {
             // Base calculations
             const discountedPrice = msrp - discount;
             const adjustedPrice = discountedPrice - tradeInValue;
@@ -468,6 +492,21 @@
             const finalPrice = adjustedPrice + totalFinancingCost;
             const totalSavings = msrp - finalPrice;
 
+            // Store pricing data for saving
+            currentPricingData = {
+                msrp,
+                discount,
+                financingRate,
+                tradeInValue,
+                finalPrice,
+                monthlyPayment,
+                totalSavings,
+                financingCost: totalFinancingCost,
+                vehicleMake: vehicleData[selectedVehicle]?.make || '',
+                vehicleModel: vehicleData[selectedVehicle]?.model || '',
+                loanTerm
+            };
+
             // Update results
             document.getElementById('finalPrice').textContent = formatCurrency(finalPrice);
             document.getElementById('monthlyPayment').textContent = formatCurrency(monthlyPayment);
@@ -476,6 +515,11 @@
 
             // Update breakdown
             updateBreakdown(msrp, discount, tradeInValue, totalFinancingCost, finalPrice);
+
+            // Show save button
+            saveButton.style.display = 'block';
+            saveStatus.textContent = '';
+            saveStatus.className = '';
         }
 
         function updateBreakdown(msrp, discount, tradeInValue, financingCost, finalPrice) {
@@ -519,10 +563,93 @@
             updateVehicleMSRP();
         }
 
-        // QuickBase Integration Functions (for actual implementation)
-        function savePricingToQuickBase(pricingData) {
-            // This would integrate with QuickBase API to save the pricing calculation
-            console.log('Saving to QuickBase:', pricingData);
+        // QuickBase Integration Functions
+        async function saveToQuickBase() {
+            if (!currentPricingData) {
+                showSaveStatus('No pricing data to save', 'error');
+                return;
+            }
+
+            try {
+                // Show saving status
+                saveButton.disabled = true;
+                saveButton.textContent = '💾 Saving...';
+                showSaveStatus('Saving to QuickBase...', '');
+
+                // Prepare record data for QuickBase API
+                const recordData = {
+                    [CONFIG.fields.msrp]: { value: currentPricingData.msrp },
+                    [CONFIG.fields.discount]: { value: currentPricingData.discount },
+                    [CONFIG.fields.financingRate]: { value: currentPricingData.financingRate },
+                    [CONFIG.fields.tradeInValue]: { value: currentPricingData.tradeInValue },
+                    [CONFIG.fields.finalPrice]: { value: currentPricingData.finalPrice },
+                    [CONFIG.fields.vehicleMake]: { value: currentPricingData.vehicleMake },
+                    [CONFIG.fields.vehicleModel]: { value: currentPricingData.vehicleModel }
+                };
+
+                // For QuickBase codepage context, use the available QB API
+                if (typeof qdb !== 'undefined' && qdb.api) {
+                    // Using QuickBase JavaScript API (available in codepages)
+                    const response = await qdb.api.addRecord(CONFIG.pricingTableId, recordData);
+                    showSaveStatus(`✅ Saved successfully! Record ID: ${response.recordId}`, 'success');
+                } else {
+                    // Fallback: Try using fetch with QuickBase REST API
+                    // This would require proper authentication setup
+                    const apiResponse = await saveViaRESTAPI(recordData);
+                    if (apiResponse.success) {
+                        showSaveStatus('✅ Saved to QuickBase successfully!', 'success');
+                    } else {
+                        throw new Error(apiResponse.error || 'Save failed');
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error saving to QuickBase:', error);
+                showSaveStatus(`❌ Failed to save: ${error.message}`, 'error');
+            } finally {
+                // Reset button
+                saveButton.disabled = false;
+                saveButton.textContent = '💾 Save to QuickBase';
+            }
+        }
+
+        async function saveViaRESTAPI(recordData) {
+            // This is a fallback implementation for when running outside QuickBase
+            // In a real QuickBase codepage, the qdb.api would be used instead
+
+            try {
+                // Get QuickBase configuration from environment or user input
+                const realm = 'your-realm.quickbase.com'; // Replace with actual realm
+                const userToken = 'your-user-token'; // Replace with actual token
+
+                const response = await fetch(`https://api.quickbase.com/v1/records`, {
+                    method: 'POST',
+                    headers: {
+                        'QB-Realm-Hostname': realm,
+                        'Authorization': `QB-USER-TOKEN ${userToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        to: CONFIG.pricingTableId,
+                        data: [recordData]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                return { success: true, data: result };
+
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        function showSaveStatus(message, statusClass) {
+            saveStatus.textContent = message;
+            saveStatus.className = statusClass;
         }
 
         function loadVehiclesFromQuickBase() {
