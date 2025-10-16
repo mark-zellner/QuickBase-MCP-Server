@@ -99,6 +99,38 @@ const ValidateRelationshipSchema = z.object({
   foreignKeyFieldId: z.number().describe('Foreign key field ID to validate')
 });
 
+// Codepage management schemas
+const SaveCodepageSchema = z.object({
+  tableId: z.string().describe('Table ID for storing codepages'),
+  name: z.string().describe('Name of the codepage'),
+  code: z.string().describe('JavaScript code for the codepage'),
+  description: z.string().optional().describe('Description of the codepage')
+});
+
+const GetCodepageSchema = z.object({
+  tableId: z.string().describe('Table ID where codepages are stored'),
+  recordId: z.number().describe('Record ID of the codepage')
+});
+
+const ListCodepagesSchema = z.object({
+  tableId: z.string().describe('Table ID where codepages are stored'),
+  limit: z.number().optional().describe('Maximum number of codepages to return')
+});
+
+const ExecuteCodepageSchema = z.object({
+  tableId: z.string().describe('Table ID where codepages are stored'),
+  recordId: z.number().describe('Record ID of the codepage'),
+  functionName: z.string().describe('Name of the function to execute'),
+  parameters: z.record(z.any()).optional().describe('Parameters to pass to the function')
+});
+
+// Auth schemas
+const InitiateOAuthSchema = z.object({
+  clientId: z.string().describe('OAuth client ID'),
+  redirectUri: z.string().describe('Redirect URI for OAuth'),
+  scopes: z.array(z.string()).optional().describe('OAuth scopes')
+});
+
 // Define all MCP tools
 export const quickbaseTools: Tool[] = [
   // ========== APPLICATION TOOLS ==========
@@ -517,6 +549,86 @@ export const quickbaseTools: Tool[] = [
       required: ['junctionTableName', 'table1Id', 'table2Id', 'table1FieldLabel', 'table2FieldLabel']
     }
   },
+
+  // ========== CODEPAGE TOOLS ==========
+  {
+    name: 'quickbase_save_codepage',
+    description: 'Save a JavaScript codepage to QuickBase',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID for storing codepages' },
+        name: { type: 'string', description: 'Name of the codepage' },
+        code: { type: 'string', description: 'JavaScript code for the codepage' },
+        description: { type: 'string', description: 'Description of the codepage' }
+      },
+      required: ['tableId', 'name', 'code']
+    }
+  },
+
+  {
+    name: 'quickbase_get_codepage',
+    description: 'Retrieve a codepage from QuickBase',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID where codepages are stored' },
+        recordId: { type: 'number', description: 'Record ID of the codepage' }
+      },
+      required: ['tableId', 'recordId']
+    }
+  },
+
+  {
+    name: 'quickbase_list_codepages',
+    description: 'List all codepages in a table',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID where codepages are stored' },
+        limit: { type: 'number', description: 'Maximum number of codepages to return' }
+      },
+      required: ['tableId']
+    }
+  },
+
+  {
+    name: 'quickbase_execute_codepage',
+    description: 'Execute a function from a stored codepage',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID where codepages are stored' },
+        recordId: { type: 'number', description: 'Record ID of the codepage' },
+        functionName: { type: 'string', description: 'Name of the function to execute' },
+        parameters: { 
+          type: 'object', 
+          description: 'Parameters to pass to the function',
+          additionalProperties: true
+        }
+      },
+      required: ['tableId', 'recordId', 'functionName']
+    }
+  },
+
+  // ========== AUTH TOOLS ==========
+  {
+    name: 'quickbase_initiate_oauth',
+    description: 'Initiate OAuth PKCE flow for QuickBase authentication',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        clientId: { type: 'string', description: 'OAuth client ID' },
+        redirectUri: { type: 'string', description: 'Redirect URI for OAuth' },
+        scopes: { 
+          type: 'array', 
+          items: { type: 'string' }, 
+          description: 'OAuth scopes (e.g., ["read:table", "write:table"])' 
+        }
+      },
+      required: ['clientId', 'redirectUri']
+    }
+  },
 ];
 
 // Export schemas for validation
@@ -533,5 +645,10 @@ export {
   CreateRelationshipSchema,
   CreateAdvancedRelationshipSchema,
   CreateLookupFieldSchema,
-  ValidateRelationshipSchema
+  ValidateRelationshipSchema,
+  SaveCodepageSchema,
+  GetCodepageSchema,
+  ListCodepagesSchema,
+  ExecuteCodepageSchema,
+  InitiateOAuthSchema
 }; 

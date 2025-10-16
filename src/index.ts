@@ -392,6 +392,94 @@ class QuickBaseMCPServer {
               ],
             };
 
+          // ========== CODEPAGE TOOLS ==========
+          case 'quickbase_save_codepage': {
+            if (!args || typeof args !== 'object') {
+              throw new Error('Invalid arguments');
+            }
+            const codepageRecordId = await this.qbClient.saveCodepage(
+              args.tableId as string,
+              args.name as string,
+              args.code as string,
+              args.description as string
+            );
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Codepage saved with record ID: ${codepageRecordId}`,
+                },
+              ],
+            };
+          }
+
+          case 'quickbase_get_codepage': {
+            if (!args || typeof args !== 'object') {
+              throw new Error('Invalid arguments');
+            }
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(await this.qbClient.getCodepage(args.tableId as string, args.recordId as number), null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'quickbase_list_codepages': {
+            if (!args || typeof args !== 'object') {
+              throw new Error('Invalid arguments');
+            }
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(await this.qbClient.listCodepages(args.tableId as string, args.limit as number), null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'quickbase_execute_codepage': {
+            if (!args || typeof args !== 'object') {
+              throw new Error('Invalid arguments');
+            }
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(await this.qbClient.executeCodepage(
+                    args.tableId as string,
+                    args.recordId as number,
+                    args.functionName as string,
+                    args.parameters as Record<string, any>
+                  ), null, 2),
+                },
+              ],
+            };
+          }
+
+          // ========== AUTH TOOLS ==========
+          case 'quickbase_initiate_oauth': {
+            if (!args || typeof args !== 'object') {
+              throw new Error('Invalid arguments');
+            }
+            const oauthUrl = this.qbClient.generateOAuthUrl(
+              args.clientId as string,
+              args.redirectUri as string,
+              args.scopes as string[]
+            );
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `OAuth URL: ${oauthUrl}`,
+                },
+              ],
+            };
+          }
+
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,

@@ -540,4 +540,72 @@ export class QuickBaseClient {
       mergeFieldId: records[0]?.keyField
     });
   }
+
+  // ========== CODEPAGE METHODS ==========
+
+  async saveCodepage(tableId: string, name: string, code: string, description?: string): Promise<number> {
+    const recordData: Record<string, any> = {
+      6: { value: name }, // Assuming field 6 is name
+      7: { value: code }, // Assuming field 7 is code
+    };
+    if (description) {
+      recordData[8] = { value: description }; // Assuming field 8 is description
+    }
+    
+    const response = await this.axios.post('/records', {
+      to: tableId,
+      data: [recordData]
+    });
+    return response.data.metadata.createdRecordIds[0];
+  }
+
+  async getCodepage(tableId: string, recordId: number): Promise<any> {
+    return this.getRecord(tableId, recordId);
+  }
+
+  async listCodepages(tableId: string, limit?: number): Promise<any[]> {
+    const options: any = {};
+    if (limit) {
+      options.top = limit;
+    }
+    return this.getRecords(tableId, options);
+  }
+
+  async executeCodepage(tableId: string, recordId: number, functionName: string, parameters?: Record<string, any>): Promise<any> {
+    const codepage = await this.getCodepage(tableId, recordId);
+    // Extract code from the record (assuming field 7 is code)
+    const code = codepage['7']?.value;
+    if (!code) {
+      throw new Error('Codepage does not contain code');
+    }
+
+    // For safety, we'll return the code and parameters instead of executing
+    // In a real implementation, you might want to sandbox the execution
+    return {
+      functionName,
+      parameters,
+      code,
+      note: 'Code execution is not implemented for security reasons. Use the code in your application.'
+    };
+  }
+
+  // ========== AUTH METHODS ==========
+
+  generateOAuthUrl(clientId: string, redirectUri: string, scopes: string[] = ['read:table', 'write:table']): string {
+    // This is a simplified OAuth URL generation
+    // In practice, you'd need PKCE implementation
+    const realm = this.config.realm;
+    const scope = scopes.join(' ');
+    const state = Math.random().toString(36).substring(2);
+    
+    const params = new URLSearchParams({
+      client_id: clientId,
+      response_type: 'code',
+      scope,
+      redirect_uri: redirectUri,
+      state
+    });
+
+    return `https://${realm}/oauth2/authorize?${params.toString()}`;
+  }
 } 
