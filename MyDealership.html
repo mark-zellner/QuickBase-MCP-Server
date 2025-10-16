@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyDealership - AI-Powered Pricing Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .calculator-section {
+            padding: 40px;
+        }
+
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .input-section, .results-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid #e9ecef;
+        }
+
+        .input-section h2, .results-section h2 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.95em;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .result-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .result-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .result-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .result-value.positive {
+            color: #28a745;
+        }
+
+        .result-value.negative {
+            color: #dc3545;
+        }
+
+        .breakdown-section {
+            margin-top: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .breakdown-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.3em;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+
+        .breakdown-label {
+            color: #495057;
+        }
+
+        .breakdown-value {
+            font-weight: 600;
+        }
+
+        .ai-insights {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+        }
+
+        .ai-insights h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .insight-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+
+        .insight-card h4 {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .insight-card p {
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .calculator-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .calculator-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 MyDealership</h1>
+            <p>AI-Powered Car Dealership Pricing Calculator</p>
+        </div>
+
+        <div class="calculator-section">
+            <div class="calculator-grid">
+                <div class="input-section">
+                    <h2>Vehicle Pricing Details</h2>
+                    <form id="pricingForm">
+                        <div class="form-group">
+                            <label for="vehicleSelect">Select Vehicle</label>
+                            <select id="vehicleSelect" required>
+                                <option value="">Choose a vehicle...</option>
+                                <option value="toyota-camry">Toyota Camry 2024</option>
+                                <option value="honda-civic">Honda Civic 2024</option>
+                                <option value="ford-mustang">Ford Mustang 2024</option>
+                                <option value="chevrolet-silverado">Chevrolet Silverado 2024</option>
+                                <option value="bmw-3series">BMW 3 Series 2024</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="msrp">MSRP ($)</label>
+                            <input type="number" id="msrp" placeholder="35000" required min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="discount">Discount ($)</label>
+                            <input type="number" id="discount" placeholder="2000" min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="financingRate">Financing Rate (%)</label>
+                            <input type="number" id="financingRate" placeholder="4.5" min="0" max="20" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tradeInValue">Trade-In Value ($)</label>
+                            <input type="number" id="tradeInValue" placeholder="15000" min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="loanTerm">Loan Term (months)</label>
+                            <select id="loanTerm">
+                                <option value="36">36 months</option>
+                                <option value="48">48 months</option>
+                                <option value="60" selected>60 months</option>
+                                <option value="72">72 months</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="calculate-btn">🚀 Calculate Pricing</button>
+                    </form>
+                </div>
+
+                <div class="results-section">
+                    <h2>Pricing Results</h2>
+                    <div id="loading" class="loading">
+                        <p>🤖 AI is calculating optimal pricing...</p>
+                    </div>
+                    <div id="results" style="display: none;">
+                        <div class="results-grid">
+                            <div class="result-card">
+                                <div class="result-label">Final Price</div>
+                                <div class="result-value" id="finalPrice">$0</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="result-label">Monthly Payment</div>
+                                <div class="result-value" id="monthlyPayment">$0</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="result-label">Total Savings</div>
+                                <div class="result-value positive" id="totalSavings">$0</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="result-label">Financing Cost</div>
+                                <div class="result-value" id="financingCost">$0</div>
+                            </div>
+                        </div>
+
+                        <div class="breakdown-section">
+                            <h3>Detailed Breakdown</h3>
+                            <div id="breakdown">
+                                <!-- Breakdown items will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ai-insights">
+                <h3>🤖 AI Dealership Insights</h3>
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <h4>💰 Market Analysis</h4>
+                        <p>Based on current market data, this vehicle is priced competitively with similar models in your area.</p>
+                    </div>
+                    <div class="insight-card">
+                        <h4>📈 Seasonal Trends</h4>
+                        <p>October typically sees 15% higher conversion rates for this model. Consider offering winter packages.</p>
+                    </div>
+                    <div class="insight-card">
+                        <h4>🎯 Customer Profile</h4>
+                        <p>Similar customers to this profile have shown 78% satisfaction with 60-month financing terms.</p>
+                    </div>
+                    <div class="insight-card">
+                        <h4>🔧 Service Recommendations</h4>
+                        <p>Include complimentary first service and extended warranty for maximum customer value.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // QuickBase Configuration - Update with your actual table and field IDs
+        const CONFIG = {
+            pricingTableId: 'bvhuaz8wz', // Pricing Calculator table
+            vehiclesTableId: 'bvhuaz7s5', // Vehicles table
+
+            // Field IDs from your schema
+            fields: {
+                relatedVehicle: 6,
+                msrp: 7,
+                discount: 8,
+                financingRate: 9,
+                tradeInValue: 10,
+                finalPrice: 11,
+                vehicleMake: 12,
+                vehicleModel: 13
+            }
+        };
+
+        // Vehicle data for demo purposes
+        const vehicleData = {
+            'toyota-camry': { make: 'Toyota', model: 'Camry', msrp: 28000, image: '🚗' },
+            'honda-civic': { make: 'Honda', model: 'Civic', msrp: 24000, image: '🚙' },
+            'ford-mustang': { make: 'Ford', model: 'Mustang', msrp: 35000, image: '🏎️' },
+            'chevrolet-silverado': { make: 'Chevrolet', model: 'Silverado', msrp: 42000, image: '🚛' },
+            'bmw-3series': { make: 'BMW', model: '3 Series', msrp: 45000, image: '🚗' }
+        };
+
+        // DOM Elements
+        const form = document.getElementById('pricingForm');
+        const vehicleSelect = document.getElementById('vehicleSelect');
+        const msrpInput = document.getElementById('msrp');
+        const results = document.getElementById('results');
+        const loading = document.getElementById('loading');
+
+        // Event Listeners
+        vehicleSelect.addEventListener('change', updateVehicleMSRP);
+        form.addEventListener('submit', calculatePricing);
+
+        function updateVehicleMSRP() {
+            const selectedVehicle = vehicleSelect.value;
+            if (selectedVehicle && vehicleData[selectedVehicle]) {
+                msrpInput.value = vehicleData[selectedVehicle].msrp;
+            }
+        }
+
+        function calculatePricing(e) {
+            e.preventDefault();
+
+            // Show loading
+            loading.classList.add('show');
+            results.style.display = 'none';
+
+            // Get form values
+            const msrp = Number.parseFloat(document.getElementById('msrp').value) || 0;
+            const discount = Number.parseFloat(document.getElementById('discount').value) || 0;
+            const financingRate = Number.parseFloat(document.getElementById('financingRate').value) || 0;
+            const tradeInValue = Number.parseFloat(document.getElementById('tradeInValue').value) || 0;
+            const loanTerm = Number.parseInt(document.getElementById('loanTerm').value) || 60;
+
+            // AI-powered pricing calculation
+            setTimeout(() => {
+                performPricingCalculation(msrp, discount, financingRate, tradeInValue, loanTerm);
+                loading.classList.remove('show');
+                results.style.display = 'block';
+            }, 1500); // Simulate AI processing time
+        }
+
+        function performPricingCalculation(msrp, discount, financingRate, tradeInValue, loanTerm) {
+            // Base calculations
+            const discountedPrice = msrp - discount;
+            const adjustedPrice = discountedPrice - tradeInValue;
+
+            // Financing calculations
+            const monthlyRate = financingRate / 100 / 12;
+            const numPayments = loanTerm;
+
+            let monthlyPayment = 0;
+            let totalFinancingCost = 0;
+
+            if (financingRate > 0) {
+                monthlyPayment = (adjustedPrice * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+                               (Math.pow(1 + monthlyRate, numPayments) - 1);
+                totalFinancingCost = (monthlyPayment * numPayments) - adjustedPrice;
+            } else {
+                monthlyPayment = adjustedPrice / numPayments;
+            }
+
+            const finalPrice = adjustedPrice + totalFinancingCost;
+            const totalSavings = msrp - finalPrice;
+
+            // Update results
+            document.getElementById('finalPrice').textContent = formatCurrency(finalPrice);
+            document.getElementById('monthlyPayment').textContent = formatCurrency(monthlyPayment);
+            document.getElementById('totalSavings').textContent = formatCurrency(totalSavings);
+            document.getElementById('financingCost').textContent = formatCurrency(totalFinancingCost);
+
+            // Update breakdown
+            updateBreakdown(msrp, discount, tradeInValue, totalFinancingCost, finalPrice);
+        }
+
+        function updateBreakdown(msrp, discount, tradeInValue, financingCost, finalPrice) {
+            const breakdown = document.getElementById('breakdown');
+            breakdown.innerHTML = `
+                <div class="breakdown-item">
+                    <span class="breakdown-label">MSRP</span>
+                    <span class="breakdown-value">${formatCurrency(msrp)}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label">Discount</span>
+                    <span class="breakdown-value">-${formatCurrency(discount)}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label">Trade-In Value</span>
+                    <span class="breakdown-value">-${formatCurrency(tradeInValue)}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label">Financing Cost</span>
+                    <span class="breakdown-value">${formatCurrency(financingCost)}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label">Final Price</span>
+                    <span class="breakdown-value">${formatCurrency(finalPrice)}</span>
+                </div>
+            `;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Initialize with first vehicle if available
+        if (vehicleSelect.options.length > 1) {
+            vehicleSelect.selectedIndex = 1;
+            updateVehicleMSRP();
+        }
+
+        // QuickBase Integration Functions (for actual implementation)
+        function savePricingToQuickBase(pricingData) {
+            // This would integrate with QuickBase API to save the pricing calculation
+            console.log('Saving to QuickBase:', pricingData);
+        }
+
+        function loadVehiclesFromQuickBase() {
+            // This would load vehicle data from QuickBase Vehicles table
+            console.log('Loading vehicles from QuickBase');
+        }
+
+        function populateVehicleSelect(vehicles) {
+            const select = document.getElementById('vehicleSelect');
+            for (const vehicle of vehicles) {
+                const option = document.createElement('option');
+                option.value = vehicle.id;
+                option.textContent = `${vehicle.make} ${vehicle.model} ${vehicle.year}`;
+                select.appendChild(option);
+            }
+        }
+
+        // Load vehicles on page load (commented out for demo)
+        // loadVehiclesFromQuickBase();
+    </script>
+</body>
+</html>
