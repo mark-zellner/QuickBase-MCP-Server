@@ -614,9 +614,8 @@
 
                 // Use session authentication when embedded in QuickBase
                 if (typeof window.qbClient !== 'undefined' && window.qbClient.mode !== 'shim') {
-                    // Using QuickBase client with session authentication
-                    const client = new window.qbClient();
-                    await client.post(`records`, {
+                    // Using QuickBase client with session authentication (already instantiated)
+                    await window.qbClient.post(`records`, {
                         to: CONFIG.pricingTableId,
                         data: [recordData]
                     });
