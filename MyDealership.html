@@ -612,18 +612,18 @@
                     [CONFIG.fields.vehicleModel]: { value: currentPricingData.vehicleModel }
                 };
 
-                // Use session authentication when embedded in QuickBase
-                if (typeof window.qbClient !== 'undefined' && window.qbClient.mode !== 'shim') {
-                    // Using QuickBase client with session authentication (already instantiated)
+                // Prefer QuickBase JavaScript API when available (no CORS issues)
+                if (typeof qdb !== 'undefined' && qdb.api) {
+                    // Using QuickBase JavaScript API (available in codepages) - BEST OPTION
+                    const response = await qdb.api.addRecord(CONFIG.pricingTableId, recordData);
+                    showSaveStatus(`✅ Saved successfully! Record ID: ${response.recordId}`, 'success');
+                } else if (typeof window.qbClient !== 'undefined' && window.qbClient.mode !== 'shim') {
+                    // Fallback: Using session client (may have CORS issues in codepages)
                     await window.qbClient.post(`records`, {
                         to: CONFIG.pricingTableId,
                         data: [recordData]
                     });
                     showSaveStatus(`✅ Saved successfully! Record created.`, 'success');
-                } else if (typeof qdb !== 'undefined' && qdb.api) {
-                    // Fallback: Using QuickBase JavaScript API (available in codepages)
-                    const response = await qdb.api.addRecord(CONFIG.pricingTableId, recordData);
-                    showSaveStatus(`✅ Saved successfully! Record ID: ${response.recordId}`, 'success');
                 } else {
                     // Last resort: Show authentication error
                     throw new Error('QuickBase client not available. Please ensure you are accessing this page from within QuickBase or configure authentication properly.');
