@@ -1,0 +1,251 @@
+================================================================================
+                 QUICKBASE MCP SERVER - TOOLS INVENTORY
+================================================================================
+
+TOTAL TOOLS: 31
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ APPLICATION MANAGEMENT (3 tools)                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 1. quickbase_get_app_info          - Get application information            │
+│ 2. quickbase_get_tables            - List all tables in the application     │
+│ 3. quickbase_test_connection       - Test connection to QuickBase API       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TABLE OPERATIONS (3 tools)                                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 4. quickbase_create_table          - Create a new table                     │
+│ 5. quickbase_get_table_info        - Get table details                      │
+│ 6. quickbase_delete_table          - Delete a table                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FIELD MANAGEMENT (4 tools)                                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 7. quickbase_get_table_fields      - Get all fields for a table             │
+│ 8. quickbase_create_field          - Create a new field (18+ types)         │
+│ 9. quickbase_update_field          - Update field properties                │
+│ 10. quickbase_delete_field         - Delete a field                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RECORD OPERATIONS (8 tools)                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 11. quickbase_query_records        - Query with filtering & sorting         │
+│ 12. quickbase_get_record           - Get specific record by ID              │
+│ 13. quickbase_create_record        - Create single record                   │
+│ 14. quickbase_update_record        - Update existing record                 │
+│ 15. quickbase_delete_record        - Delete a record                        │
+│ 16. quickbase_bulk_create_records  - Create multiple records at once        │
+│ 17. quickbase_search_records       - Text-based search                      │
+│ 18. [Reserved for future bulk ops] - Bulk update/delete (not yet)          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ BASIC RELATIONSHIPS (2 tools)                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 19. quickbase_create_relationship  - Create parent-child relationship       │
+│ 20. quickbase_get_relationships    - Get existing relationships             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ADVANCED RELATIONSHIPS (5 tools)                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 21. quickbase_create_advanced_relationship  - Create relationship with      │
+│                                              automatic lookup fields         │
+│ 22. quickbase_create_lookup_field          - Create lookup field to pull   │
+│                                              data from related table         │
+│ 23. quickbase_validate_relationship        - Validate relationship          │
+│                                              integrity & detect orphans      │
+│ 24. quickbase_get_relationship_details     - Get detailed relationship      │
+│                                              info including field metadata   │
+│ 25. quickbase_create_junction_table        - Create junction table for      │
+│                                              many-to-many relationships      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ REPORTS (2 tools)                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 26. quickbase_get_reports          - Get all reports for a table            │
+│ 27. quickbase_run_report           - Execute and retrieve report data       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CODEPAGE MANAGEMENT (4 tools)                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 28. quickbase_save_codepage        - Save JavaScript codepage               │
+│ 29. quickbase_get_codepage         - Retrieve codepage by record ID         │
+│ 30. quickbase_list_codepages       - List all codepages in a table          │
+│ 31. quickbase_execute_codepage     - Execute function from stored codepage  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ AUTHENTICATION (1 tool)                                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 32. quickbase_initiate_oauth       - Initiate OAuth PKCE flow               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                        CAPABILITY SUMMARY
+================================================================================
+
+FULLY SUPPORTED:
+  ✓ CRUD Operations on Tables, Fields, Records
+  ✓ Complex Record Queries (filtering, sorting, pagination)
+  ✓ Relationship Management (basic and advanced)
+  ✓ Junction Tables for Many-to-Many
+  ✓ Reports (retrieve & execute)
+  ✓ Codepage Management (save, retrieve, execute)
+  ✓ OAuth Authentication
+
+PARTIALLY SUPPORTED:
+  ~ Bulk Operations (create OK, update/delete workarounds needed)
+  ~ Relationship Management (no delete/update operations)
+  ~ Complex Queries (manual OR/AND combinations)
+
+NOT SUPPORTED:
+  ✗ Caching (configured but not implemented)
+  ✗ Retry Logic (configured but not implemented)
+  ✗ Rate Limiting
+  ✗ Aggregations (GROUP BY, SUM, COUNT)
+  ✗ Joins Between Tables
+  ✗ Webhooks & Automations
+  ✗ Audit Logs & History
+  ✗ User/Permission Management
+  ✗ File Upload/Download
+  ✗ Transactions/Atomicity
+
+================================================================================
+                     SUPPORTED FIELD TYPES (18+)
+================================================================================
+
+TEXT TYPES:
+  • text                    • text_choice           • text_multiline
+  • richtext
+
+NUMERIC TYPES:
+  • numeric                 • currency              • percent
+  • rating
+
+DATE/TIME TYPES:
+  • date                    • datetime              • timeofday
+  • duration
+
+SPECIALIZED TYPES:
+  • checkbox                • user                  • multiselect
+  • email                   • phone                 • url
+  • address                 • file
+
+REFERENCE TYPES:
+  • lookup                  • summary               • formula
+  • reference               • autonumber            • recordid
+
+================================================================================
+                        ARCHITECTURE OVERVIEW
+================================================================================
+
+LAYERS:
+  1. MCP Server Layer      (index.ts)      - Tool routing and request handling
+  2. QuickBase Client      (client.ts)     - API communication with axios
+  3. Tool Definitions      (tools/index.ts) - Tool schemas and descriptions
+  4. Type System           (types/*.ts)    - Zod validation schemas
+
+DATA FLOW:
+  MCP Client → Server.CallToolRequest → Tool Handler → QuickBaseClient Method
+  → AxiosInstance HTTP → QuickBase API → Response → JSON Response
+
+KEY FEATURES:
+  • TypeScript with full type safety
+  • Zod schema validation
+  • Axios HTTP client with interceptors
+  • Request/response logging
+  • Error handling via McpError
+  • Environment-based configuration
+  • Modular, extensible design
+
+================================================================================
+                        KNOWN GAPS & LIMITATIONS
+================================================================================
+
+CRITICAL ISSUES:
+  1. Retry logic configured but NOT IMPLEMENTED (maxRetries unused)
+  2. No response caching - every request hits the API
+  3. Hardcoded field IDs (field 3 = Record ID, 6 = name, 7 = code, 8 = description)
+  4. No input validation before API calls
+  5. No response schema validation
+
+MISSING QUERY FEATURES:
+  • Aggregations (GROUP BY, SUM, COUNT, AVG)
+  • Joins between tables
+  • DISTINCT duplicate elimination
+  • Field aliases (AS)
+  • Nested OR/AND combinations
+  • Limit without offset
+
+MISSING OPERATIONS:
+  • Bulk update (partial, needs workarounds)
+  • Bulk delete with conditions
+  • Delete relationship
+  • Update relationship
+  • Soft deletes
+  • Cascading deletes
+
+MISSING ENTERPRISE FEATURES:
+  • Audit logs and history
+  • Field change tracking
+  • Record versioning
+  • User/permission management
+  • Custom roles
+  • Notifications
+  • Forms and dashboards
+  • Automations and workflows
+  • Webhooks (incoming)
+
+================================================================================
+                    RECOMMENDED IMPROVEMENTS (By Priority)
+================================================================================
+
+HIGH PRIORITY:
+  1. Implement actual retry logic with exponential backoff
+  2. Add input parameter validation before API calls
+  3. Validate API responses against expected schemas
+  4. Create specific error types (not all ErrorCode.InternalError)
+  5. Make field ID mappings configurable
+
+MEDIUM PRIORITY:
+  6. Implement TTL-based response caching
+  7. Complete relationship CRUD (add delete/update)
+  8. Add aggregation support (GROUP BY, COUNT, SUM)
+  9. Improve text search with field-specific operators
+  10. Add efficient bulk update operations
+
+LOW PRIORITY:
+  11. Implement connection pooling
+  12. Add circuit breaker pattern
+  13. Support webhooks (incoming/outgoing)
+  14. Add file attachment operations
+  15. Build advanced query builder helpers
+
+================================================================================
+                         PERFORMANCE NOTES
+================================================================================
+
+CURRENT CHARACTERISTICS:
+  • Single AxiosInstance for connection reuse (good)
+  • Configurable timeout (default: 30 seconds)
+  • No caching layer
+  • Chatty API (one call per operation)
+  • No request batching
+  • No rate limiting
+
+OPTIMIZATION OPPORTUNITIES:
+  • Add in-memory cache with TTL
+  • Implement request deduplication
+  • Batch multiple API calls together
+  • Configure connection pooling
+  • Add response compression awareness
+  • Optimize field selection (only request needed fields)
+  • Consider database-level caching strategy
+
+================================================================================
