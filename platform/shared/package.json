@@ -1,0 +1,19 @@
+{
+  "name": "@quickbase-platform/shared",
+  "version": "1.0.0",
+  "description": "Shared types and interfaces for QuickBase Codepage Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

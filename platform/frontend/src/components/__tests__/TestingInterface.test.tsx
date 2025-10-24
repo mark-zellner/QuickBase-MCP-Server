@@ -1,0 +1,259 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TestingInterface } from '../TestingInterface';
+
+// Mock the test service
+vi.mock('../../services/testService', () => ({
+  testService: {
+    executeTest: vi.fn().mockResolvedValue({
+      id: 'test-123',
+      status: 'passed',
+      executionTime: 1500,
+      logs: ['Test started', 'API call successful', 'Test completed'],
+      errors: [],
+      performanceMetrics: {
+        executionTime: 1500,
+        memoryUsage: 1024000,
+        apiCallCount: 3,
+        apiResponseTime: 250,
+      },
+    }),
+    getActiveTests: vi.fn().mockResolvedValue(['test-123', 'test-456']),
+    cancelTest: vi.fn().mockResolvedValue(true),
+    getMockData: vi.fn().mockResolvedValue({
+      vehicles: [
+        { id: 1, make: 'Toyota', model: 'Camry' },
+        { id: 2, make: 'Honda', model: 'Accord' },
+      ],
+    }),
+    updateMockData: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+};
+
+describe('TestingInterface', () => {
+  const defaultProps = {
+    projectId: 'test-project-123',
+    versionId: 'v1.0.0',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders the testing interface', () => {
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    expect(screen.getByText(/test execution/i)).toBeInTheDocument();
+    expect(screen.getByText(/run test/i)).toBeInTheDocument();
+  });
+
+  it('displays test configuration options', () => {
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    expect(screen.getByLabelText(/timeout/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/memory limit/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/api call limit/i)).toBeInTheDocument();
+  });
+
+  it('executes test when run button is clicked', async () => {
+    const { testService } = await import('../../services/testService');
+    
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const runButton = screen.getByText(/run test/i);
+    fireEvent.click(runButton);
+
+    await waitFor(() => {
+      expect(testService.executeTest).toHaveBeenCalledWith({
+        projectId: defaultProps.projectId,
+        versionId: defaultProps.versionId,
+        config: expect.any(Object),
+      });
+    });
+  });
+
+  it('displays test results after execution', async () => {
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const runButton = screen.getByText(/run test/i);
+    fireEvent.click(runButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/test passed/i)).toBeInTheDocument();
+      expect(screen.getByText(/execution time: 1.5s/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows test logs', async () => {
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const runButton = screen.getByText(/run test/i);
+    fireEvent.click(runButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test started')).toBeInTheDocument();
+      expect(screen.getByText('API call successful')).toBeInTheDocument();
+      expect(screen.getByText('Test completed')).toBeInTheDocument();
+    });
+  });
+
+  it('displays performance metrics', async () => {
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const runButton = screen.getByText(/run test/i);
+    fireEvent.click(runButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/memory usage/i)).toBeInTheDocument();
+      expect(screen.getByText(/api calls: 3/i)).toBeInTheDocument();
+      expect(screen.getByText(/avg response time: 250ms/i)).toBeInTheDocument();
+    });
+  });
+
+  it('allows canceling active tests', async () => {
+    const { testService } = await import('../../services/testService');
+    
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    // Start a test
+    const runButton = screen.getByText(/run test/i);
+    fireEvent.click(runButton);
+
+    // Cancel the test
+    await waitFor(() => {
+      const cancelButton = screen.getByText(/cancel/i);
+      fireEvent.click(cancelButton);
+    });
+
+    expect(testService.cancelTest).toHaveBeenCalled();
+  });
+
+  it('manages mock data', async () => {
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    // Open mock data manager
+    const mockDataButton = screen.getByText(/mock data/i);
+    fireEvent.click(mockDataButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/vehicles/i)).toBeInTheDocument();
+      expect(screen.getByText('Toyota Camry')).toBeInTheDocument();
+    });
+  });
+
+  it('updates test configuration', () => {
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const timeoutInput = screen.getByLabelText(/timeout/i);
+    fireEvent.change(timeoutInput, { target: { value: '60000' } });
+
+    expect(timeoutInput).toHaveValue(60000);
+  });
+
+  it('shows loading state during test execution', async () => {
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const runButton = screen.getByText(/run test/i);
+    fireEvent.click(runButton);
+
+    // Should show loading state immediately
+    expect(screen.getByText(/running test/i)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('handles test errors gracefully', async () => {
+    const { testService } = await import('../../services/testService');
+    testService.executeTest.mockRejectedValueOnce(new Error('Test execution failed'));
+
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    const runButton = screen.getByText(/run test/i);
+    fireEvent.click(runButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/test execution failed/i)).toBeInTheDocument();
+    });
+  });
+
+  it('displays test history', async () => {
+    render(
+      <TestWrapper>
+        <TestingInterface {...defaultProps} />
+      </TestWrapper>
+    );
+
+    // Run a test first
+    const runButton = screen.getByText(/run test/i);
+    fireEvent.click(runButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/test passed/i)).toBeInTheDocument();
+    });
+
+    // Check test history
+    const historyTab = screen.getByText(/history/i);
+    fireEvent.click(historyTab);
+
+    expect(screen.getByText(/test-123/i)).toBeInTheDocument();
+  });
+});
