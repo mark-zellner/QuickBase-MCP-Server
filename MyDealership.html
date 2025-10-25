@@ -400,6 +400,11 @@
             pricingTableId: 'bvhuaz8wz', // Pricing Calculator table
             vehiclesTableId: 'bvhuaz7s5', // Vehicles table
 
+            // App Token (only needed if using app token authentication)
+            // Get this from: Settings → App Properties → Manage App Tokens
+            // Leave empty if using temporary token authentication
+            appToken: '', // Example: 'b10b_dsds_0_ca9aj9dtjdbp8k5vgj3nnd3zb'
+
             // Field IDs from your schema
             fields: {
                 relatedVehicle: 6,
@@ -571,6 +576,30 @@
 
         // Store current calculation results
         let currentPricingData = null;
+
+        // Configure app token if provided
+        (function configureAuth() {
+            // Wait for client to be ready
+            const checkClient = setInterval(() => {
+                if (window.qbClient && window.qbClient.mode !== 'error') {
+                    clearInterval(checkClient);
+
+                    // If app token is configured, set it
+                    if (CONFIG.appToken && typeof qbClient.setAppToken === 'function') {
+                        qbClient.setAppToken(CONFIG.appToken);
+                        console.log('[MyDealership] ✅ App token configured');
+                    } else if (CONFIG.appToken) {
+                        console.warn('[MyDealership] ⚠️ App token provided but client does not support setAppToken()');
+                        console.warn('Make sure you deployed the app token version of the library');
+                    } else {
+                        console.log('[MyDealership] Using session-based authentication');
+                    }
+                }
+            }, 100);
+
+            // Timeout after 10 seconds
+            setTimeout(() => clearInterval(checkClient), 10000);
+        })();
 
         // Event Listeners
         vehicleSelect.addEventListener('change', updateVehicleMSRP);

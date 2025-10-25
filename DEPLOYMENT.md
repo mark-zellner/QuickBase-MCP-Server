@@ -10,6 +10,23 @@ This guide walks you through deploying the QuickBase Codepage Hero library and M
 
 ## Part 1: Deploy the QuickBase Client Library (pageID=3)
 
+### Choose Your Authentication Method
+
+QuickBase Codepage Hero supports two authentication methods:
+
+1. **Temporary Token (v2.0)** - Session-based, no tokens to manage
+   - ✅ Most secure (no tokens in code)
+   - ❌ May not be available in all QuickBase realms
+   - ❌ May not work with SSO
+
+2. **App Token (v2.1)** - Token-based, universally supported
+   - ✅ Works in all QuickBase realms
+   - ✅ Works with SSO
+   - ✅ More reliable
+   - ⚠️ Token visible in codepage source (mitigate with permissions)
+
+**Recommendation:** Start with App Token (v2.1) as it's more widely supported.
+
 ### Step 1: Create the Library Codepage
 
 1. Navigate to your QuickBase app
@@ -23,10 +40,26 @@ This guide walks you through deploying the QuickBase Codepage Hero library and M
 
 ### Step 2: Copy the Library Code
 
+**For App Token Authentication (Recommended):**
+
+1. Open [quickbase_codepage_hero_apptoken.js](quickbase_codepage_hero_apptoken.js) from this repository
+2. Copy the **entire contents** of the file
+3. Paste into the codepage editor in QuickBase
+4. Click **Save**
+
+**For Temporary Token Authentication:**
+
 1. Open [quickbase_codepage_hero.js](quickbase_codepage_hero.js) from this repository
 2. Copy the **entire contents** of the file
 3. Paste into the codepage editor in QuickBase
 4. Click **Save**
+
+**For Troubleshooting:**
+
+If you encounter errors, use the diagnostic version:
+1. Open [quickbase_codepage_hero_diagnostic.js](quickbase_codepage_hero_diagnostic.js)
+2. Follow the same deployment steps
+3. See [TROUBLESHOOTING_404.md](TROUBLESHOOTING_404.md) for diagnosis steps
 
 ### Step 3: Verify the Library
 
@@ -68,6 +101,49 @@ Client mode: session-temp-token
 - Verify you're logged into QuickBase
 - Check that your user has access to the app
 - Try refreshing your browser session
+
+## Part 1.5: Configure Authentication (App Token Only)
+
+**Skip this section if you're using Temporary Token authentication.**
+
+If you deployed the App Token version, you need to create and configure an app token:
+
+### Step 1: Create an App Token
+
+1. Go to your QuickBase app
+2. Click **Settings** → **App Properties**
+3. Scroll down and click **Advanced Settings**
+4. Click **Manage App Tokens**
+5. Click **New App Token**
+6. Configure the token:
+   - **Name**: `MyDealership Codepage`
+   - **Description**: `Token for MyDealership pricing calculator codepage`
+7. Click **Save**
+8. **IMPORTANT**: Copy the token immediately - you won't be able to see it again!
+
+Example token: `b10b_dsds_0_ca9aj9dtjdbp8k5vgj3nnd3zb`
+
+### Step 2: Test the Token (Optional)
+
+In your browser console on any QuickBase page:
+
+```javascript
+// Load the library
+const script = document.createElement('script');
+script.src = '/db/YOUR_APP_ID?a=dbpage&pageID=3';
+document.head.appendChild(script);
+
+// Wait a moment, then configure and test
+setTimeout(async () => {
+    qbClient.setAppToken('YOUR_APP_TOKEN_HERE');
+
+    // Test by getting fields
+    const fields = await qbClient.getFields('YOUR_TABLE_ID');
+    console.log('✅ Token works! Fields:', fields.length);
+}, 2000);
+```
+
+If you see "✅ Token works!", you're good to go!
 
 ## Part 2: Deploy MyDealership Application (pageID=2)
 
