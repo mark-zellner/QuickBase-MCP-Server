@@ -157,9 +157,62 @@ Users authenticated via SSO may have restrictions on temporary token generation.
 
 Use App Token authentication instead (see below).
 
-## Alternative Authentication: App Tokens
+## Alternative Authentication Methods
 
-If temporary tokens don't work, use app tokens instead. App tokens are more widely supported and work reliably across all QuickBase environments.
+If temporary tokens don't work, you have two secure alternatives:
+
+### Option 1: Pure Session Authentication (MOST SECURE - NO TOKENS)
+
+**Best for:** Security-conscious environments where token exposure is not acceptable
+
+This method uses ONLY your QuickBase session cookies - no tokens of any kind are required or exposed in the code.
+
+#### Deploy Pure Session Version
+
+1. Copy [quickbase_codepage_hero_session.js](quickbase_codepage_hero_session.js)
+2. Deploy to your codepage at pageID=3
+3. That's it! No tokens to configure.
+
+#### How It Works
+
+- All API requests include `credentials: 'include'` to send session cookies
+- QuickBase authenticates using your current login session
+- No tokens are stored, transmitted, or visible in code
+- Uses the logged-in user's permissions automatically
+
+#### Advantages
+
+✅ **Maximum security** - Zero tokens in code
+✅ **User-specific permissions** - Each user's own access level
+✅ **No configuration** - Just deploy and use
+✅ **Session-scoped** - Access tied to active QuickBase login
+
+#### Limitations
+
+⚠️ **Must be in QuickBase** - Won't work from external domains
+⚠️ **Session required** - User must be logged into QuickBase
+⚠️ **CORS restrictions** - Only works within QuickBase environment
+
+#### Test Pure Session Authentication
+
+```javascript
+// Test if it works
+const result = await qbClient.testConnection('YOUR_TABLE_ID');
+console.log(result);
+
+// Should return:
+// {
+//   success: true,
+//   message: 'Connection successful',
+//   fieldsCount: 15
+// }
+```
+
+### Option 2: App Token Authentication
+
+**Best for:** When you need to work outside QuickBase or need app-level permissions
+
+If temporary tokens don't work, use app tokens. App tokens are more widely supported and work reliably across all QuickBase environments.
 
 ### Step 1: Create an App Token
 

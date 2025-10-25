@@ -13,9 +13,9 @@ This repository provides three powerful tools for QuickBase development:
 A Model Context Protocol server that provides maximum flexibility for QuickBase operations through AI assistants like Claude. Create tables, add fields, modify relationships, and perform all QuickBase operations through MCP tools.
 
 ### 2. QuickBase Codepage Hero
-A lightweight JavaScript library for building interactive QuickBase codepages with session-based authentication. Deploy as a single codepage and use across all your QuickBase applications. **Now with v2.0 featuring temporary token authentication!**
+A lightweight JavaScript library for building interactive QuickBase codepages. Deploy as a single codepage and use across all your QuickBase applications. **Now with v2.2 featuring pure session authentication - NO TOKENS REQUIRED!** ⭐
 
-[📖 **Codepage Guide**](CLAUDE.md) | [🚀 **Deployment**](DEPLOYMENT.md) | [💡 **Example**](MyDealership.html)
+[📖 **Codepage Guide**](CLAUDE.md) | [🚀 **Deployment**](DEPLOYMENT.md) | [💡 **Example**](MyDealership.html) | [🔒 **Secure Version**](quickbase_codepage_hero_session.js)
 
 ### 3. Codepage Development Platform
 A complete web-based development environment for creating, testing, and deploying QuickBase codepages with minimal technical expertise. Built for dealership staff and business users to develop interactive applications like pricing calculators.
@@ -26,28 +26,32 @@ A complete web-based development environment for creating, testing, and deployin
 
 ## QuickBase Codepage Hero
 
-### What's New in v2.0
+### What's New in v2.2 - Pure Session Authentication
 
-- **Temporary Token Authentication**: Secure session-based authentication using QuickBase temporary tokens
-- **No User Tokens Required**: Leverage the current user's session cookies automatically
-- **Token Caching**: Intelligent caching reduces API calls and improves performance
-- **Resilient Loading**: Multiple fallback strategies ensure the library loads reliably
-- **Enhanced API**: Simplified methods for all CRUD operations
+- **⭐ ZERO TOKENS**: No app tokens, user tokens, or temporary tokens - 100% session-based
+- **Maximum Security**: No credentials visible in codepage source code
+- **User Permissions**: Each user's own QuickBase permissions automatically applied
+- **Zero Configuration**: Deploy and use immediately - no token setup required
+- **SSO Compatible**: Works with Single Sign-On environments
+- **Simple API**: All CRUD operations with clean, intuitive methods
 
 ### Quick Start
 
-**Deploy the library (5 minutes):**
+**Deploy the library (2 minutes):**
 
 1. Create a new codepage in your QuickBase app (pageID=3)
-2. Copy [quickbase_codepage_hero.js](quickbase_codepage_hero.js) into the codepage
-3. Save and you're done!
+2. Copy [quickbase_codepage_hero_session.js](quickbase_codepage_hero_session.js) into the codepage
+3. Save and you're done! **No tokens to configure.**
 
 **Use in your codepages:**
 
 ```html
 <script src="/db/YOUR_APP_ID?a=dbpage&pageID=3"></script>
 <script>
-// Create a record
+// Test connection (optional)
+await qbClient.testConnection('YOUR_TABLE_ID');
+
+// Create a record - uses your session automatically!
 async function saveData() {
     const result = await qbClient.createRecords('YOUR_TABLE_ID', [
         {
@@ -58,7 +62,7 @@ async function saveData() {
     console.log('Saved!', result);
 }
 
-// Query records
+// Query records - your permissions applied
 async function loadData() {
     const result = await qbClient.queryRecords('YOUR_TABLE_ID', {
         select: [3, 6, 7, 8],

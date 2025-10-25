@@ -12,20 +12,29 @@ This guide walks you through deploying the QuickBase Codepage Hero library and M
 
 ### Choose Your Authentication Method
 
-QuickBase Codepage Hero supports two authentication methods:
+QuickBase Codepage Hero supports three authentication methods:
 
-1. **Temporary Token (v2.0)** - Session-based, no tokens to manage
-   - ✅ Most secure (no tokens in code)
-   - ❌ May not be available in all QuickBase realms
-   - ❌ May not work with SSO
-
-2. **App Token (v2.1)** - Token-based, universally supported
-   - ✅ Works in all QuickBase realms
+1. **Pure Session (v2.2)** - NO TOKENS AT ALL ⭐ **RECOMMENDED FOR SECURITY**
+   - ✅ **Maximum security** - Zero tokens in code
+   - ✅ User-specific permissions
+   - ✅ No configuration needed
    - ✅ Works with SSO
-   - ✅ More reliable
-   - ⚠️ Token visible in codepage source (mitigate with permissions)
+   - ⚠️ Must be loaded from within QuickBase
 
-**Recommendation:** Start with App Token (v2.1) as it's more widely supported.
+2. **Temporary Token (v2.0)** - Session-based temporary tokens
+   - ✅ Secure (tokens auto-expire)
+   - ❌ May not be available in all QuickBase realms
+   - ❌ May not work with some SSO setups
+
+3. **App Token (v2.1)** - Long-lived token-based
+   - ✅ Works everywhere
+   - ✅ Works with SSO
+   - ⚠️ Token visible in codepage source
+
+**Recommendation:**
+- **If security is critical and you don't expose tokens:** Use **Pure Session (v2.2)**
+- **If you need flexibility:** Use App Token (v2.1)
+- **If available in your realm:** Try Temporary Token (v2.0)
 
 ### Step 1: Create the Library Codepage
 
@@ -40,12 +49,21 @@ QuickBase Codepage Hero supports two authentication methods:
 
 ### Step 2: Copy the Library Code
 
-**For App Token Authentication (Recommended):**
+**For Pure Session Authentication (Recommended - No Tokens):**
+
+1. Open [quickbase_codepage_hero_session.js](quickbase_codepage_hero_session.js) from this repository
+2. Copy the **entire contents** of the file
+3. Paste into the codepage editor in QuickBase
+4. Click **Save**
+5. **Done!** No tokens to configure.
+
+**For App Token Authentication:**
 
 1. Open [quickbase_codepage_hero_apptoken.js](quickbase_codepage_hero_apptoken.js) from this repository
 2. Copy the **entire contents** of the file
 3. Paste into the codepage editor in QuickBase
 4. Click **Save**
+5. Follow [Part 1.5](#part-15-configure-authentication-app-token-only) to configure your token
 
 **For Temporary Token Authentication:**
 
