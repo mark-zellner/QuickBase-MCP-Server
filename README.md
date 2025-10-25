@@ -7,15 +7,97 @@ A comprehensive QuickBase development toolkit consisting of:
 
 ## Overview
 
-This repository provides two powerful tools for QuickBase development:
+This repository provides three powerful tools for QuickBase development:
 
-### MCP Server
+### 1. MCP Server
 A Model Context Protocol server that provides maximum flexibility for QuickBase operations through AI assistants like Claude. Create tables, add fields, modify relationships, and perform all QuickBase operations through MCP tools.
 
-### Codepage Development Platform
+### 2. QuickBase Codepage Hero
+A lightweight JavaScript library for building interactive QuickBase codepages with session-based authentication. Deploy as a single codepage and use across all your QuickBase applications. **Now with v2.0 featuring temporary token authentication!**
+
+[📖 **Codepage Guide**](CLAUDE.md) | [🚀 **Deployment**](DEPLOYMENT.md) | [💡 **Example**](MyDealership.html)
+
+### 3. Codepage Development Platform
 A complete web-based development environment for creating, testing, and deploying QuickBase codepages with minimal technical expertise. Built for dealership staff and business users to develop interactive applications like pricing calculators.
 
 [📖 **Platform Documentation**](platform/README.md) | [🚀 **Quick Start**](platform/README.md#-quick-start)
+
+---
+
+## QuickBase Codepage Hero
+
+### What's New in v2.0
+
+- **Temporary Token Authentication**: Secure session-based authentication using QuickBase temporary tokens
+- **No User Tokens Required**: Leverage the current user's session cookies automatically
+- **Token Caching**: Intelligent caching reduces API calls and improves performance
+- **Resilient Loading**: Multiple fallback strategies ensure the library loads reliably
+- **Enhanced API**: Simplified methods for all CRUD operations
+
+### Quick Start
+
+**Deploy the library (5 minutes):**
+
+1. Create a new codepage in your QuickBase app (pageID=3)
+2. Copy [quickbase_codepage_hero.js](quickbase_codepage_hero.js) into the codepage
+3. Save and you're done!
+
+**Use in your codepages:**
+
+```html
+<script src="/db/YOUR_APP_ID?a=dbpage&pageID=3"></script>
+<script>
+// Create a record
+async function saveData() {
+    const result = await qbClient.createRecords('YOUR_TABLE_ID', [
+        {
+            6: { value: 'Toyota' },
+            7: { value: 28000 }
+        }
+    ]);
+    console.log('Saved!', result);
+}
+
+// Query records
+async function loadData() {
+    const result = await qbClient.queryRecords('YOUR_TABLE_ID', {
+        select: [3, 6, 7, 8],
+        where: "{6.EX.'Toyota'}"
+    });
+    console.log('Records:', result.data);
+}
+</script>
+```
+
+### Example Application
+
+[MyDealership.html](MyDealership.html) demonstrates a complete pricing calculator that:
+- Loads vehicle data from QuickBase
+- Performs complex calculations
+- Saves results back to QuickBase
+- Includes professional UI and error handling
+
+**Try it**: Deploy to your app and access at:
+```
+https://YOUR_REALM.quickbase.com/db/YOUR_APP_ID?a=dbpage&pageID=2
+```
+
+### Features
+
+✅ **Session-based authentication** - No tokens to manage
+✅ **All CRUD operations** - Create, read, update, delete
+✅ **Query & reporting** - Advanced filtering and sorting
+✅ **Schema discovery** - Get tables, fields, and relationships
+✅ **Automatic retries** - Handles network issues gracefully
+✅ **TypeScript-ready** - Full type definitions available
+✅ **Zero dependencies** - Pure JavaScript, works everywhere
+
+### Documentation
+
+- [CLAUDE.md](CLAUDE.md) - Complete API reference and development guide
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Step-by-step deployment instructions
+- [guides/Quickbase_Session_Auth_Codepage.md](guides/Quickbase_Session_Auth_Codepage.md) - Authentication details
+- [guides/CODEPAGE_HERO_OPTIONS.md](guides/CODEPAGE_HERO_OPTIONS.md) - Advanced configuration
 
 ---
 
