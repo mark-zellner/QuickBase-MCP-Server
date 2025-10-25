@@ -59,7 +59,7 @@ export const OptionsSelector: React.FC<OptionsSelectorProps> = ({
 
     // Sort options within each category by name
     Object.keys(grouped).forEach(category => {
-      grouped[category].sort((a, b) => a.name.localeCompare(b.name));
+      grouped[category].sort((a: VehicleOption, b: VehicleOption) => a.name.localeCompare(b.name));
     });
 
     return grouped;
@@ -333,7 +333,7 @@ export const OptionsSelector: React.FC<OptionsSelectorProps> = ({
                   </AccordionSummary>
                   <AccordionDetails>
                     <List dense>
-                      {optionsByCategory[category].map(option => {
+                      {optionsByCategory[category].map((option: VehicleOption) => {
                         const isSelected = selectedOptions.includes(option.id);
                         return (
                           <ListItem 

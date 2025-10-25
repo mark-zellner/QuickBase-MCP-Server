@@ -72,7 +72,7 @@ export const TestExecutionControls: React.FC<TestExecutionControlsProps> = ({
   };
 
   const handleConfigChange = (field: keyof TestConfig, value: any) => {
-    setConfig(prev => ({
+    setConfig((prev: TestConfig) => ({
       ...prev,
       [field]: value,
     }));

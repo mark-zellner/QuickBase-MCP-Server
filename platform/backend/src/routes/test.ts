@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { TestEnvironmentService } from '../services/test.js';
 import { AuthService } from '../services/auth.js';
 import { ExecuteTestInput } from '../services/test.js';
-import { z } from 'zod';
 
 const ExecuteTestSchema = z.object({
   projectId: z.string(),
@@ -47,8 +46,10 @@ export function createTestRoutes(testService: TestEnvironmentService, authServic
         });
       }
 
-      const user = await authService.verifyToken(token);
-      if (!user) {
+      const tokenPayload = authService.verifyToken(token);
+      const user = await authService.getUserById(tokenPayload.userId);
+
+      if (!user || !user.isActive) {
         return res.status(401).json({
           success: false,
           error: {

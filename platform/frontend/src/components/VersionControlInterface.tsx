@@ -14,7 +14,7 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondary,
+  ListItemSecondaryAction,
   Divider,
   Alert,
   Tabs,
@@ -30,9 +30,9 @@ import {
   Compare as CompareIcon,
   Merge as MergeIcon,
   Tag as TagIcon,
-  Branch as BranchIcon,
-  Rollback as RollbackIcon,
-  Deploy as DeployIcon,
+  AccountTree as BranchIcon,
+  Undo as RollbackIcon,
+  RocketLaunch as DeployIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
@@ -344,7 +344,7 @@ export const VersionControlInterface: React.FC<VersionControlInterfaceProps> = (
                   </Box>
                 }
               />
-              <ListItemSecondary>
+              <ListItemSecondaryAction>
                 <Box display="flex" gap={1}>
                   <Tooltip title="Tag Version">
                     <IconButton
@@ -376,7 +376,7 @@ export const VersionControlInterface: React.FC<VersionControlInterfaceProps> = (
                     Select
                   </Button>
                 </Box>
-              </ListItemSecondary>
+              </ListItemSecondaryAction>
             </ListItem>
             {index < versions.length - 1 && <Divider />}
           </React.Fragment>
@@ -463,7 +463,7 @@ export const VersionControlInterface: React.FC<VersionControlInterfaceProps> = (
                   </Typography>
                 }
               />
-              <ListItemSecondary>
+              <ListItemSecondaryAction>
                 <Button
                   variant="outlined"
                   startIcon={<MergeIcon />}
@@ -472,7 +472,7 @@ export const VersionControlInterface: React.FC<VersionControlInterfaceProps> = (
                 >
                   Resolve
                 </Button>
-              </ListItemSecondary>
+              </ListItemSecondaryAction>
             </ListItem>
           ))}
         </List>

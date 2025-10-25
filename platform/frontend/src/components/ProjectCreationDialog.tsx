@@ -20,7 +20,8 @@ import {
   Add as AddIcon,
   Code as CodeIcon,
 } from '@mui/icons-material';
-import { CodepageTemplate, CreateProjectInput } from '../types/shared.js';
+import { CreateProjectInput } from '../types/shared';
+import type { CodepageTemplate } from '../../../shared/src/types/template';
 import { TemplateSelector } from './TemplateSelector';
 
 interface ProjectCreationDialogProps {

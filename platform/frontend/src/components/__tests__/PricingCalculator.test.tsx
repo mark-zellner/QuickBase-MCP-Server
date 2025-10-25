@@ -23,7 +23,7 @@ vi.mock('../../services/pricingService', () => ({
       totalInterest: 5400,
       totalAmount: 33400,
     }),
-    saveQuote: vi.fn().mockResolvedValue({ id: 'quote-123' }),
+    createQuote: vi.fn().mockResolvedValue({ id: 'quote-123' }),
   },
 }));
 
@@ -155,9 +155,9 @@ describe('PricingCalculator', () => {
     });
   });
 
-  it('saves quote when save button is clicked', async () => {
+  it('creates quote when save button is clicked', async () => {
     const { pricingService } = await import('../../services/pricingService');
-    
+
     render(
       <TestWrapper>
         <PricingCalculator />
@@ -174,7 +174,7 @@ describe('PricingCalculator', () => {
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(pricingService.saveQuote).toHaveBeenCalled();
+      expect(pricingService.createQuote).toHaveBeenCalled();
     });
   });
 
@@ -205,4 +205,8 @@ describe('PricingCalculator', () => {
     });
   });
 
-  it('handles load
+  it('handles loading state correctly', () => {
+    render(<PricingCalculator />);
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  });
+});

@@ -202,3 +202,12 @@ export class AuthMiddleware {
     }
   };
 }
+
+// Create a default instance for routes that don't use dependency injection
+// This is a temporary solution - ideally all routes should use the factory pattern
+import { AuthService as DefaultAuthService } from '../services/auth.js';
+const defaultAuthService = new DefaultAuthService();
+const defaultAuthMiddleware = new AuthMiddleware(defaultAuthService);
+
+// Export the authenticate method as a named export for backward compatibility
+export const authMiddleware = defaultAuthMiddleware.authenticate;

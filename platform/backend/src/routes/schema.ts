@@ -195,7 +195,7 @@ export function createSchemaRoutes(schemaService: SchemaService, authService: Au
         });
       }
 
-      const result = await schemaService.createTable(validation.data.body, (req.user as any).userId);
+      const result = await schemaService.createTable(validation.data.body as TableDefinition, (req.user as any).userId);
       
       if (result.success) {
         res.status(201).json(result);
@@ -240,7 +240,7 @@ export function createSchemaRoutes(schemaService: SchemaService, authService: Au
       const body = validation.data.body;
       const result = await schemaService.updateTable(
         params.tableId,
-        body,
+        body as Partial<TableDefinition>,
         (req.user as any).userId
       );
       
@@ -339,7 +339,7 @@ export function createSchemaRoutes(schemaService: SchemaService, authService: Au
       const body = validation.data.body;
       const result = await schemaService.createField(
         params.tableId,
-        body,
+        body as FieldDefinition,
         (req.user as any).userId
       );
       
@@ -387,7 +387,7 @@ export function createSchemaRoutes(schemaService: SchemaService, authService: Au
       const result = await schemaService.updateField(
         params.tableId,
         params.fieldId,
-        body,
+        body as Partial<FieldDefinition>,
         (req.user as any).userId
       );
       
@@ -493,7 +493,10 @@ export function createSchemaRoutes(schemaService: SchemaService, authService: Au
         });
       }
 
-      const result = await schemaService.createRelationship(validation.data.body, (req.user as any).userId);
+      const result = await schemaService.createRelationship(
+        { type: 'one-to-many', ...validation.data.body } as RelationshipDefinition,
+        (req.user as any).userId
+      );
       
       if (result.success) {
         res.status(201).json(result);
@@ -609,13 +612,13 @@ export function createSchemaRoutes(schemaService: SchemaService, authService: Au
     try {
       // Get pending schema changes that require approval
       const result = await schemaService.getChangeLog(undefined, 100);
-      
-      if (result.success) {
+
+      if (result.success && result.data) {
         // Filter for pending changes only
-        const pendingChanges = result.data.filter((change: any) => 
+        const pendingChanges = result.data.filter((change: any) =>
           change.status === 'pending'
         );
-        
+
         res.json({
           success: true,
           data: pendingChanges,

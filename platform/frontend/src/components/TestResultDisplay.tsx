@@ -365,12 +365,12 @@ export const TestResultDisplay: React.FC<TestResultDisplayProps> = ({
               {testResult.logs.length === 0 ? (
                 <Typography color="text.secondary">No logs available</Typography>
               ) : (
-                testResult.logs.map((log, index) => (
-                  <Typography 
+                testResult.logs.map((log: string, index: number) => (
+                  <Typography
                     key={index}
-                    variant="body2" 
+                    variant="body2"
                     component="div"
-                    sx={{ 
+                    sx={{
                       fontFamily: 'monospace',
                       fontSize: '0.75rem',
                       mb: 0.5,

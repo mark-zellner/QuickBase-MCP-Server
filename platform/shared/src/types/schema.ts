@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UserRoleSchema } from './user.js';
 
 // QuickBase Field Type Enum
 export const QuickBaseFieldTypeSchema = z.enum([
@@ -38,8 +39,8 @@ export const FieldDefinitionSchema = z.object({
   id: z.number().optional(), // QuickBase field ID
   label: z.string(),
   fieldType: QuickBaseFieldTypeSchema,
-  required: z.boolean().default(false),
-  unique: z.boolean().default(false),
+  required: z.boolean().optional().default(false),
+  unique: z.boolean().optional().default(false),
   defaultValue: z.any().optional(),
   validation: z.array(ValidationRuleSchema).optional(),
   choices: z.array(z.string()).optional(),
@@ -53,13 +54,15 @@ export type FieldDefinition = z.infer<typeof FieldDefinitionSchema>;
 // Relationship Definition Schema
 export const RelationshipDefinitionSchema = z.object({
   id: z.string().optional(),
+  type: z.enum(['one-to-many', 'many-to-many']).default('one-to-many'),
   parentTableId: z.string(),
   childTableId: z.string(),
   foreignKeyFieldId: z.number(),
-  type: z.enum(['one-to-many', 'many-to-many']).default('one-to-many'),
   lookupFields: z.array(z.object({
-    parentFieldId: z.number(),
-    childFieldLabel: z.string(),
+    sourceFieldId: z.number(),
+    targetFieldId: z.number(),
+    parentFieldId: z.number().optional(),
+    childFieldLabel: z.string().optional(),
   })).optional(),
 });
 
@@ -87,11 +90,21 @@ export const TableDefinitionSchema = z.object({
 
 export type TableDefinition = z.infer<typeof TableDefinitionSchema>;
 
+// Schema Change Type Enum
+export const SchemaChangeTypeSchema = z.enum([
+  'create', 'update', 'delete',
+  'table_create', 'table_update', 'table_delete',
+  'field_create', 'field_update', 'field_delete',
+  'relationship_create', 'relationship_update', 'relationship_delete'
+]);
+
+export type SchemaChangeType = z.infer<typeof SchemaChangeTypeSchema>;
+
 // Schema Change Schema
 export const SchemaChangeSchema = z.object({
   id: z.string(),
-  type: z.enum(['table_create', 'table_update', 'table_delete', 'field_create', 'field_update', 'field_delete', 'relationship_create', 'relationship_delete']),
-  tableId: z.string(),
+  type: SchemaChangeTypeSchema,
+  tableId: z.string().optional(),
   fieldId: z.number().optional(),
   relationshipId: z.string().optional(),
   changes: z.record(z.any()),
@@ -101,6 +114,3 @@ export const SchemaChangeSchema = z.object({
 });
 
 export type SchemaChange = z.infer<typeof SchemaChangeSchema>;
-
-// Import UserRoleSchema from user.ts
-import { UserRoleSchema } from './user.js';

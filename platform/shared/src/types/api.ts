@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+// API Error Schema
+export const ApiErrorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  details: z.any().optional(),
+  timestamp: z.string().optional(),
+});
+
+export type ApiError = z.infer<typeof ApiErrorSchema>;
+
 // API Response Schema
 export const ApiResponseSchema = z.object({
   success: z.boolean(),

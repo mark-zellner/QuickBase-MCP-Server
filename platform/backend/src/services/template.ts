@@ -1247,8 +1247,9 @@ if (typeof QB === 'undefined') {
 
   // Template validation and processing
 
-  validateTemplateCode(code: string): { isValid: boolean; errors: string[] } {
+  validateTemplateCode(code: string): { isValid: boolean; errors: string[]; warnings: string[] } {
     const errors: string[] = [];
+    const warnings: string[] = [];
 
     // Basic JavaScript syntax validation
     try {
@@ -1259,17 +1260,23 @@ if (typeof QB === 'undefined') {
 
     // Check for required CDN Hero integration
     if (!code.includes('QB.on') && !code.includes('typeof QB')) {
-      errors.push('Template should include QuickBase Hero library integration');
+      warnings.push('Template should include QuickBase Hero library integration');
     }
 
     // Check for basic structure
     if (!code.includes('class ') && !code.includes('function ')) {
-      errors.push('Template should define at least one class or function');
+      warnings.push('Template should define at least one class or function');
+    }
+
+    // Check for console.log (warning only)
+    if (code.includes('console.log')) {
+      warnings.push('Template contains console.log statements - consider removing for production');
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
+      warnings
     };
   }
 

@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { 
+import {
   DeploymentService,
+  DeploymentRecord,
   CreateEnvironmentSchema,
   CreateDeploymentSchema,
   CreatePipelineSchema,
@@ -249,8 +250,8 @@ export function createDeploymentRoutes(
     asyncHandler(async (req: Request, res: Response) => {
       try {
         const { projectId, environmentId, status, limit, page } = req.query as any;
-        
-        let deployments;
+
+        let deployments: DeploymentRecord[];
         if (projectId) {
           deployments = await deploymentService.getProjectDeployments(projectId, environmentId);
         } else if (environmentId) {

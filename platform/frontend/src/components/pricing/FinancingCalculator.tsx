@@ -344,7 +344,7 @@ export const FinancingCalculator: React.FC<FinancingCalculatorProps> = ({
                     fullWidth
                     variant="contained"
                     startIcon={<CalculateIcon />}
-                    onClick={() => onFinancingSelected?.({
+                    onClick={() => calculatedPayments.loan && onFinancingSelected?.({
                       id: 'custom-loan',
                       name: 'Custom Loan',
                       type: 'loan',
@@ -357,7 +357,7 @@ export const FinancingCalculator: React.FC<FinancingCalculatorProps> = ({
                       isPromotional: false,
                       eligibilityRules: []
                     })}
-                    disabled={disabled}
+                    disabled={disabled || !calculatedPayments.loan}
                   >
                     Use This Loan
                   </Button>
@@ -526,7 +526,7 @@ export const FinancingCalculator: React.FC<FinancingCalculatorProps> = ({
                     fullWidth
                     variant="contained"
                     startIcon={<CalculateIcon />}
-                    onClick={() => onFinancingSelected?.({
+                    onClick={() => calculatedPayments.lease && onFinancingSelected?.({
                       id: 'custom-lease',
                       name: 'Custom Lease',
                       type: 'lease',
@@ -539,7 +539,7 @@ export const FinancingCalculator: React.FC<FinancingCalculatorProps> = ({
                       isPromotional: false,
                       eligibilityRules: []
                     })}
-                    disabled={disabled}
+                    disabled={disabled || !calculatedPayments.lease}
                   >
                     Use This Lease
                   </Button>

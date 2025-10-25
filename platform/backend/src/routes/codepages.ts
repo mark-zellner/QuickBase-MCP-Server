@@ -14,8 +14,9 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
       success: true,
       data: stats
     });
-  } catch (error) {
-    console.error('Error fetching codepage stats:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error fetching codepage stats:', err);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch codepage statistics'
@@ -35,8 +36,9 @@ router.get('/search', authMiddleware, async (req: Request, res: Response) => {
       data: codepages,
       count: codepages.length
     });
-  } catch (error) {
-    console.error('Error searching codepages:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error searching codepages:', err);
     res.status(500).json({
       success: false,
       error: 'Failed to search codepages'
@@ -53,8 +55,9 @@ router.get('/active', authMiddleware, async (req: Request, res: Response) => {
       data: codepages,
       count: codepages.length
     });
-  } catch (error) {
-    console.error('Error fetching active codepages:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error fetching active codepages:', err);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch active codepages'
@@ -73,8 +76,9 @@ router.get('/project/:projectId', authMiddleware, async (req: Request, res: Resp
       data: codepages,
       count: codepages.length
     });
-  } catch (error) {
-    console.error('Error fetching project codepages:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error fetching project codepages:', err);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch project codepages'
@@ -86,20 +90,21 @@ router.get('/project/:projectId', authMiddleware, async (req: Request, res: Resp
 router.get('/:codepageId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const codepage = await codepageService.getCodepage(req.params.codepageId);
-    
+
     if (!codepage) {
       return res.status(404).json({
         success: false,
         error: 'Codepage not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: codepage
     });
-  } catch (error) {
-    console.error('Error fetching codepage:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error fetching codepage:', err);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch codepage'
@@ -119,23 +124,24 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         details: validationResult.error.errors
       });
     }
-    
+
     const codepage = await codepageService.saveCodepage(validationResult.data);
-    
+
     res.status(201).json({
       success: true,
       data: codepage
     });
-  } catch (error) {
-    console.error('Error creating codepage:', error);
-    
-    if (error.message.includes('validation failed')) {
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error creating codepage:', err);
+
+    if (err.message.includes('validation failed')) {
       return res.status(400).json({
         success: false,
-        error: error.message
+        error: err.message
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'Failed to create codepage'
@@ -165,23 +171,24 @@ router.put('/:codepageId', authMiddleware, async (req: Request, res: Response) =
       success: true,
       data: codepage
     });
-  } catch (error) {
-    console.error('Error updating codepage:', error);
-    
-    if (error.message === 'Codepage not found') {
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error updating codepage:', err);
+
+    if (err.message === 'Codepage not found') {
       return res.status(404).json({
         success: false,
         error: 'Codepage not found'
       });
     }
-    
-    if (error.message.includes('validation failed')) {
+
+    if (err.message.includes('validation failed')) {
       return res.status(400).json({
         success: false,
-        error: error.message
+        error: err.message
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'Failed to update codepage'
@@ -193,21 +200,22 @@ router.put('/:codepageId', authMiddleware, async (req: Request, res: Response) =
 router.delete('/:codepageId', authMiddleware, async (req: Request, res: Response) => {
   try {
     await codepageService.deleteCodepage(req.params.codepageId);
-    
+
     res.json({
       success: true,
       message: 'Codepage deleted successfully'
     });
-  } catch (error) {
-    console.error('Error deleting codepage:', error);
-    
-    if (error.message === 'Codepage not found') {
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error deleting codepage:', err);
+
+    if (err.message === 'Codepage not found') {
       return res.status(404).json({
         success: false,
         error: 'Codepage not found'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'Failed to delete codepage'
@@ -219,22 +227,23 @@ router.delete('/:codepageId', authMiddleware, async (req: Request, res: Response
 router.post('/validate', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { code } = req.body;
-    
+
     if (!code || typeof code !== 'string') {
       return res.status(400).json({
         success: false,
         error: 'Code is required and must be a string'
       });
     }
-    
+
     const validation = codepageService.validateCodepage(code);
-    
+
     res.json({
       success: true,
       data: validation
     });
-  } catch (error) {
-    console.error('Error validating codepage:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error validating codepage:', err);
     res.status(500).json({
       success: false,
       error: 'Failed to validate codepage'
@@ -246,16 +255,16 @@ router.post('/validate', authMiddleware, async (req: Request, res: Response) => 
 router.post('/process', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { code } = req.body;
-    
+
     if (!code || typeof code !== 'string') {
       return res.status(400).json({
         success: false,
         error: 'Code is required and must be a string'
       });
     }
-    
+
     const processedCode = codepageService.processCodepageCode(code);
-    
+
     res.json({
       success: true,
       data: {
@@ -263,8 +272,9 @@ router.post('/process', authMiddleware, async (req: Request, res: Response) => {
         processedCode
       }
     });
-  } catch (error) {
-    console.error('Error processing codepage:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error processing codepage:', err);
     res.status(500).json({
       success: false,
       error: 'Failed to process codepage'
@@ -300,16 +310,17 @@ router.post('/:codepageId/deploy', authMiddleware, async (req: Request, res: Res
         error: deploymentResult.message
       });
     }
-  } catch (error) {
-    console.error('Error deploying codepage:', error);
-    
-    if (error.message === 'Codepage not found') {
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error deploying codepage:', err);
+
+    if (err.message === 'Codepage not found') {
       return res.status(404).json({
         success: false,
         error: 'Codepage not found'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'Failed to deploy codepage'
@@ -321,14 +332,14 @@ router.post('/:codepageId/deploy', authMiddleware, async (req: Request, res: Res
 router.get('/:codepageId/deployment-status', authMiddleware, async (req: Request, res: Response) => {
   try {
     const codepage = await codepageService.getCodepage(req.params.codepageId);
-    
+
     if (!codepage) {
       return res.status(404).json({
         success: false,
         error: 'Codepage not found'
       });
     }
-    
+
     // In a real implementation, this would check actual deployment status
     const deploymentStatus = {
       codepageId: codepage.id,
@@ -337,13 +348,14 @@ router.get('/:codepageId/deployment-status', authMiddleware, async (req: Request
       lastDeployment: codepage.updatedAt,
       quickbaseRecordId: codepage.quickbaseRecordId
     };
-    
+
     res.json({
       success: true,
       data: deploymentStatus
     });
-  } catch (error) {
-    console.error('Error fetching deployment status:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error fetching deployment status:', err);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch deployment status'
@@ -355,17 +367,17 @@ router.get('/:codepageId/deployment-status', authMiddleware, async (req: Request
 router.post('/:codepageId/test', authMiddleware, async (req: Request, res: Response) => {
   try {
     const codepage = await codepageService.getCodepage(req.params.codepageId);
-    
+
     if (!codepage) {
       return res.status(404).json({
         success: false,
         error: 'Codepage not found'
       });
     }
-    
+
     // Validate the codepage
     const validation = codepageService.validateCodepage(codepage.code);
-    
+
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
@@ -373,13 +385,13 @@ router.post('/:codepageId/test', authMiddleware, async (req: Request, res: Respo
         details: validation.errors
       });
     }
-    
+
     // In a real implementation, this would:
     // 1. Create a sandboxed execution environment
     // 2. Run the codepage with test data
     // 3. Capture results and performance metrics
     // 4. Return test results
-    
+
     const testResult = {
       codepageId: codepage.id,
       validationPassed: true,
@@ -389,13 +401,14 @@ router.post('/:codepageId/test', authMiddleware, async (req: Request, res: Respo
       testPassed: true,
       message: 'Codepage test completed successfully'
     };
-    
+
     res.json({
       success: true,
       data: testResult
     });
-  } catch (error) {
-    console.error('Error testing codepage:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error testing codepage:', err);
     res.status(500).json({
       success: false,
       error: 'Failed to test codepage'

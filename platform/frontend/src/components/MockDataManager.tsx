@@ -222,10 +222,11 @@ export const MockDataManager: React.FC<MockDataManagerProps> = ({
 
   const loadTemplate = (category: MockDataSet['category']) => {
     const templates = getPresetTemplates();
+    const templateData = category === 'custom' ? {} : templates[category as keyof typeof templates] || {};
     setFormData(prev => ({
       ...prev,
       category,
-      data: JSON.stringify(templates[category] || {}, null, 2)
+      data: JSON.stringify(templateData, null, 2)
     }));
   };
 

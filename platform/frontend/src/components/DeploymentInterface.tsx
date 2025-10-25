@@ -14,7 +14,7 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondary,
+  ListItemSecondaryAction,
   Divider,
   Alert,
   Tabs,
@@ -34,10 +34,10 @@ import {
   InputLabel,
 } from '@mui/material';
 import {
-  Deploy as DeployIcon,
-  Rollback as RollbackIcon,
+  RocketLaunch as DeployIcon,
+  Undo as RollbackIcon,
   Timeline as PipelineIcon,
-  Environment as EnvironmentIcon,
+  Cloud as EnvironmentIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Warning as WarningIcon,
@@ -446,7 +446,7 @@ export const DeploymentInterface: React.FC<DeploymentInterfaceProps> = ({
                     </Box>
                   }
                 />
-                <ListItemSecondary>
+                <ListItemSecondaryAction>
                   <Box display="flex" gap={1}>
                     <Button
                       size="small"
@@ -483,7 +483,7 @@ export const DeploymentInterface: React.FC<DeploymentInterfaceProps> = ({
                       </Button>
                     )}
                   </Box>
-                </ListItemSecondary>
+                </ListItemSecondaryAction>
               </ListItem>
               {index < deployments.length - 1 && <Divider />}
             </React.Fragment>
@@ -600,7 +600,7 @@ export const DeploymentInterface: React.FC<DeploymentInterfaceProps> = ({
                     </Typography>
                   }
                 />
-                <ListItemSecondary>
+                <ListItemSecondaryAction>
                   <Box display="flex" gap={1}>
                     <Button
                       size="small"
@@ -622,7 +622,7 @@ export const DeploymentInterface: React.FC<DeploymentInterfaceProps> = ({
                       Reject
                     </Button>
                   </Box>
-                </ListItemSecondary>
+                </ListItemSecondaryAction>
               </ListItem>
             );
           })}

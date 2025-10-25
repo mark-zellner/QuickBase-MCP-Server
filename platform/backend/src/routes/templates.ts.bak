@@ -15,9 +15,8 @@ router.get('/public', async (req: Request, res: Response) => {
       data: templates,
       count: templates.length
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error fetching public templates:', err);
+  } catch (error) {
+    console.error('Error fetching public templates:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch public templates'
@@ -44,9 +43,8 @@ router.get('/category/:category', async (req: Request, res: Response) => {
       data: templates,
       count: templates.length
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error fetching templates by category:', err);
+  } catch (error) {
+    console.error('Error fetching templates by category:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch templates by category'
@@ -66,9 +64,8 @@ router.get('/search', async (req: Request, res: Response) => {
       data: templates,
       count: templates.length
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error searching templates:', err);
+  } catch (error) {
+    console.error('Error searching templates:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to search templates'
@@ -84,9 +81,8 @@ router.get('/stats', async (req: Request, res: Response) => {
       success: true,
       data: stats
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error fetching template stats:', err);
+  } catch (error) {
+    console.error('Error fetching template stats:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch template stats'
@@ -110,9 +106,8 @@ router.get('/:templateId', async (req: Request, res: Response) => {
       success: true,
       data: template
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error fetching template:', err);
+  } catch (error) {
+    console.error('Error fetching template:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch template'
@@ -131,9 +126,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       data: templates,
       count: templates.length
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error fetching all templates:', err);
+  } catch (error) {
+    console.error('Error fetching all templates:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch templates'
@@ -158,9 +152,8 @@ router.get('/user/mine', authMiddleware, async (req: Request, res: Response) => 
       data: templates,
       count: templates.length
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error fetching user templates:', err);
+  } catch (error) {
+    console.error('Error fetching user templates:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch user templates'
@@ -204,8 +197,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     // Save to QuickBase if possible
     try {
       await templateService.saveTemplateToQuickBase(template.id);
-    } catch (error: unknown) {
-    const err = error as Error;
+    } catch (error) {
       console.warn('Failed to save template to QuickBase:', error);
       // Continue anyway - local storage is sufficient
     }
@@ -215,9 +207,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       data: template,
       warnings: codeValidation.warnings
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error creating template:', err);
+  } catch (error) {
+    console.error('Error creating template:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to create template'
@@ -247,7 +238,7 @@ router.put('/:templateId', authMiddleware, async (req: Request, res: Response) =
     }
     
     // Validate template code if provided
-    let codeValidation: { isValid: boolean; errors: string[]; warnings: string[] } = { isValid: true, errors: [], warnings: [] };
+    let codeValidation = { isValid: true, errors: [], warnings: [] };
     if (validationResult.data.code) {
       codeValidation = templateService.validateTemplateCode(validationResult.data.code);
       if (!codeValidation.isValid) {
@@ -270,18 +261,17 @@ router.put('/:templateId', authMiddleware, async (req: Request, res: Response) =
       data: template,
       warnings: codeValidation.warnings
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error updating template:', err);
+  } catch (error) {
+    console.error('Error updating template:', error);
     
-    if (err.message === 'Template not found') {
+    if (error.message === 'Template not found') {
       return res.status(404).json({
         success: false,
         error: 'Template not found'
       });
     }
     
-    if (err.message === 'Insufficient permissions to update template') {
+    if (error.message === 'Insufficient permissions to update template') {
       return res.status(403).json({
         success: false,
         error: 'Insufficient permissions to update template'
@@ -312,18 +302,17 @@ router.delete('/:templateId', authMiddleware, async (req: Request, res: Response
       success: true,
       message: 'Template deleted successfully'
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error deleting template:', err);
+  } catch (error) {
+    console.error('Error deleting template:', error);
     
-    if (err.message === 'Template not found') {
+    if (error.message === 'Template not found') {
       return res.status(404).json({
         success: false,
         error: 'Template not found'
       });
     }
     
-    if (err.message === 'Insufficient permissions to delete template') {
+    if (error.message === 'Insufficient permissions to delete template') {
       return res.status(403).json({
         success: false,
         error: 'Insufficient permissions to delete template'
@@ -355,9 +344,8 @@ router.post('/validate', authMiddleware, async (req: Request, res: Response) => 
       success: true,
       data: validation
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error validating template code:', err);
+  } catch (error) {
+    console.error('Error validating template code:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to validate template code'
@@ -387,9 +375,8 @@ router.post('/process', authMiddleware, async (req: Request, res: Response) => {
         config: config || {}
       }
     });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error processing template code:', err);
+  } catch (error) {
+    console.error('Error processing template code:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to process template code'

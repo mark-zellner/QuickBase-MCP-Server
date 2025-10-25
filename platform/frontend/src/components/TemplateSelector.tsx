@@ -26,7 +26,7 @@ import {
   Assignment as FormIcon,
   Build as UtilityIcon,
 } from '@mui/icons-material';
-import { CodepageTemplate, TemplateCategory } from '../types/shared.js';
+import type { CodepageTemplate, TemplateCategory } from '../../../shared/src/types/template';
 
 interface TemplateSelectorProps {
   open: boolean;
@@ -61,8 +61,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | 'all'>('all');
 
   const filteredTemplates = templates.filter((template) => {
-    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         template.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (template.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (template.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -175,16 +175,18 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
               >
                 <CardContent sx={{ flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    {categoryIcons[template.category]}
+                    {template.category && categoryIcons[template.category]}
                     <Typography variant="h6" component="h3" sx={{ ml: 1, flex: 1 }}>
-                      {template.name}
+                      {template.name || 'Unnamed Template'}
                     </Typography>
-                    <Chip
-                      label={categoryLabels[template.category]}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
+                    {template.category && (
+                      <Chip
+                        label={categoryLabels[template.category]}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
+                    )}
                   </Box>
 
                   <Typography
@@ -198,10 +200,10 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                       overflow: 'hidden',
                     }}
                   >
-                    {template.description}
+                    {template.description || 'No description available'}
                   </Typography>
 
-                  {template.dependencies.length > 0 && (
+                  {template.dependencies && template.dependencies.length > 0 && (
                     <Box sx={{ mb: 1 }}>
                       <Typography variant="caption" color="text.secondary">
                         Dependencies:

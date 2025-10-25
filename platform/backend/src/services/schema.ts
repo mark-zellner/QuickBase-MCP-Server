@@ -1,33 +1,14 @@
-// Local type definitions for schema functionality
-export interface TableDefinition {
-  name: string;
-  description?: string;
-  fields: FieldDefinition[];
-}
+// Import shared types
+import {
+  TableDefinition,
+  FieldDefinition,
+  RelationshipDefinition,
+  SchemaChange,
+  SchemaChangeType
+} from '../../../shared/src/types/schema.js';
 
-export interface FieldDefinition {
-  label: string;
-  fieldType: string;
-  required?: boolean;
-  unique?: boolean;
-  choices?: string[];
-}
-
-export interface RelationshipDefinition {
-  parentTableId: string;
-  childTableId: string;
-  foreignKeyFieldId: number;
-}
-
-export interface SchemaChange {
-  id: string;
-  type: 'create' | 'update' | 'delete';
-  entityType: 'table' | 'field' | 'relationship';
-  entityId: string;
-  changes: any;
-  userId: string;
-  timestamp: Date;
-}
+// Re-export for routes
+export { TableDefinition, FieldDefinition, RelationshipDefinition, SchemaChange, SchemaChangeType };
 
 export type QuickBaseFieldType = 'text' | 'numeric' | 'date' | 'checkbox' | 'email';
 
@@ -37,6 +18,9 @@ export interface ApiResponse<T = any> {
   error?: {
     code: string;
     message: string;
+    details?: any;
+    timestamp?: string;
+    requestId?: string;
   };
 }
 
@@ -135,7 +119,13 @@ export class SchemaService {
             await this.rollbackTableCreation(tableId);
             changeLog.status = 'failed';
             this.changeLog.set(changeId, changeLog);
-            return fieldResult;
+            return {
+              success: false,
+              error: fieldResult.error || {
+                code: 'FIELD_CREATE_ERROR',
+                message: 'Failed to create field',
+              },
+            };
           }
         }
       }
@@ -367,10 +357,16 @@ export class SchemaService {
       // Get current field info for rollback data
       const currentFields = await this.getTableFields(tableId);
       if (!currentFields.success) {
-        return currentFields;
+        return {
+          success: false,
+          error: currentFields.error || {
+            code: 'FIELD_FETCH_ERROR',
+            message: 'Failed to fetch current fields',
+          },
+        };
       }
 
-      const currentField = currentFields.data.find((f: any) => f.id === fieldId);
+      const currentField = currentFields.data?.find((f: any) => f.id === fieldId);
       if (!currentField) {
         return {
           success: false,
@@ -436,10 +432,16 @@ export class SchemaService {
       // Get current field info for rollback data
       const currentFields = await this.getTableFields(tableId);
       if (!currentFields.success) {
-        return currentFields;
+        return {
+          success: false,
+          error: currentFields.error || {
+            code: 'FIELD_FETCH_ERROR',
+            message: 'Failed to fetch current fields',
+          },
+        };
       }
 
-      const currentField = currentFields.data.find((f: any) => f.id === fieldId);
+      const currentField = currentFields.data?.find((f: any) => f.id === fieldId);
       if (!currentField) {
         return {
           success: false,
@@ -714,12 +716,12 @@ export class SchemaService {
       }
 
       // Validate field integrity
-      const fieldValidation = await this.validateFieldIntegrity(fieldsResult.data);
+      const fieldValidation = await this.validateFieldIntegrity(fieldsResult.data || []);
       errors.push(...fieldValidation.errors);
       warnings.push(...fieldValidation.warnings);
 
       // Validate relationship integrity
-      if (relationshipsResult.success) {
+      if (relationshipsResult.success && relationshipsResult.data) {
         const relationshipValidation = await this.validateRelationshipIntegrity(
           tableId,
           relationshipsResult.data
@@ -751,10 +753,11 @@ export class SchemaService {
       // Group changes by table
       const changesByTable = new Map<string, SchemaChange[]>();
       for (const change of changes) {
-        if (!changesByTable.has(change.tableId)) {
-          changesByTable.set(change.tableId, []);
+        const tableId = change.tableId || 'unknown';
+        if (!changesByTable.has(tableId)) {
+          changesByTable.set(tableId, []);
         }
-        changesByTable.get(change.tableId)!.push(change);
+        changesByTable.get(tableId)!.push(change);
       }
 
       // Check for conflicts within each table

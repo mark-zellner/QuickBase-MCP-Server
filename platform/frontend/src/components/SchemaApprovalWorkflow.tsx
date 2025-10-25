@@ -233,8 +233,8 @@ export const SchemaApprovalWorkflow: React.FC<SchemaApprovalWorkflowProps> = ({
     if (!currentStep.requiredRole.includes(user.role)) return false;
 
     // Check if user hasn't already approved this change
-    const userApproval = change.approvals.find(approval => 
-      approval.approverId === user.userId
+    const userApproval = change.approvals.find(approval =>
+      approval.approverId === user.id
     );
     
     return !userApproval || userApproval.status === 'pending';

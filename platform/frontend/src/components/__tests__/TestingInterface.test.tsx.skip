@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TestingInterface } from '../TestingInterface';
+import { TestExecutionControls as TestingInterface } from '../TestExecutionControls';
 
 // Mock the test service
 vi.mock('../../services/testService', () => ({

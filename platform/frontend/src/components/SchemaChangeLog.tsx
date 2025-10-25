@@ -51,6 +51,7 @@ interface SchemaChangeLogProps {
 interface SchemaChangeInfo extends SchemaChange {
   authorName?: string;
   tableName?: string;
+  status?: 'pending' | 'applied' | 'failed' | 'rolled_back';
 }
 
 const CHANGE_TYPE_LABELS: Record<string, string> = {
@@ -233,9 +234,11 @@ export const SchemaChangeLog: React.FC<SchemaChangeLogProps> = ({
           <Typography variant="subtitle2" color="text.secondary">
             Timestamp: {formatTimestamp(change.timestamp)}
           </Typography>
-          <Typography variant="subtitle2" color="text.secondary">
-            Status: <Chip label={change.status} color={STATUS_COLORS[change.status]} size="small" />
-          </Typography>
+          {change.status && (
+            <Typography variant="subtitle2" color="text.secondary">
+              Status: <Chip label={change.status} color={STATUS_COLORS[change.status]} size="small" />
+            </Typography>
+          )}
         </Box>
 
         {change.fieldId && (
@@ -438,17 +441,21 @@ export const SchemaChangeLog: React.FC<SchemaChangeLogProps> = ({
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <Chip 
-                      label={change.status}
-                      color={STATUS_COLORS[change.status]}
-                      size="small"
-                      icon={
-                        change.status === 'applied' ? <ApprovedIcon /> :
-                        change.status === 'failed' ? <FailedIcon /> :
-                        change.status === 'rolled_back' ? <UndoIcon /> :
-                        <PendingIcon />
-                      }
-                    />
+                    {change.status ? (
+                      <Chip
+                        label={change.status}
+                        color={STATUS_COLORS[change.status]}
+                        size="small"
+                        icon={
+                          change.status === 'applied' ? <ApprovedIcon /> :
+                          change.status === 'failed' ? <FailedIcon /> :
+                          change.status === 'rolled_back' ? <UndoIcon /> :
+                          <PendingIcon />
+                        }
+                      />
+                    ) : (
+                      <Chip label="unknown" color="default" size="small" />
+                    )}
                   </TableCell>
                   <TableCell align="center">
                     <Tooltip title="View Details">

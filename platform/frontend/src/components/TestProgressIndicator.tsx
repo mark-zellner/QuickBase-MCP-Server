@@ -81,9 +81,9 @@ export const TestProgressIndicator: React.FC<TestProgressIndicatorProps> = ({
           </Typography>
           {testResult && (
             <Chip
-              icon={getStatusIcon(testResult.status)}
+              icon={getStatusIcon(testResult.status) || undefined}
               label={testResult.status.toUpperCase()}
-              color={getStatusColor(testResult.status) as any}
+              color={getStatusColor(testResult.status)}
               variant="outlined"
             />
           )}

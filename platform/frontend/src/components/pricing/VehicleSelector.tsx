@@ -90,7 +90,7 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
   };
 
   const handleFilterChange = (field: keyof VehicleSearchFilters, value: any) => {
-    setFilters(prev => ({
+    setFilters((prev: VehicleSearchFilters) => ({
       ...prev,
       [field]: value || undefined
     }));

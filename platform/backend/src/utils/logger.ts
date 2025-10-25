@@ -120,9 +120,9 @@ class Logger {
       // Log response
       res.on('finish', () => {
         const duration = Date.now() - start;
-        const level = res.statusCode >= 400 ? 'warn' : 'info';
-        
-        this[level as keyof Logger](`${req.method} ${req.path} - ${res.statusCode}`, {
+        const logMethod = res.statusCode >= 400 ? this.warn.bind(this) : this.info.bind(this);
+
+        logMethod(`${req.method} ${req.path} - ${res.statusCode}`, {
           method: req.method,
           path: req.path,
           statusCode: res.statusCode,
@@ -146,8 +146,8 @@ class Logger {
 
   // Performance logging
   logPerformance(operation: string, duration: number, meta?: any, requestId?: string): void {
-    const level = duration > 1000 ? 'warn' : 'info';
-    this[level as keyof Logger](`Performance: ${operation} took ${duration}ms`, {
+    const logMethod = duration > 1000 ? this.warn.bind(this) : this.info.bind(this);
+    logMethod(`Performance: ${operation} took ${duration}ms`, {
       operation,
       duration,
       ...meta,

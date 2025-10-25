@@ -29,8 +29,7 @@ import type {
   Incentive,
   PricingConfiguration,
   PriceBreakdown,
-  FinancingOption,
-  VehicleSearchFilters
+  FinancingOption
 } from '../types';
 
 const steps = [

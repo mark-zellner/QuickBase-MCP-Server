@@ -30,7 +30,7 @@ export const TestingPage: React.FC = () => {
   const [testProgress, setTestProgress] = useState(0);
   const [currentTestResult, setCurrentTestResult] = useState<TestResult | null>(null);
   const [testHistory, setTestHistory] = useState<TestResult[]>([]);
-  const [selectedMockData, setSelectedMockData] = useState<MockDataSet | null>(null);
+  const [selectedMockData, setSelectedMockData] = useState<MockDataSet | undefined>(undefined);
   const [notification, setNotification] = useState<{
     open: boolean;
     message: string;
