@@ -634,93 +634,53 @@
                     timestamp: new Date().toISOString(),
                     hostname: location.hostname,
                     isQuickBase: /quickbase\.com$/i.test(location.hostname),
-                    apis: {
-                        qdb: typeof qdb !== 'undefined',
-                        qdb_api: typeof qdb !== 'undefined' && qdb.api,
-                        QB: typeof QB !== 'undefined',
-                        QB_api: typeof QB !== 'undefined' && QB.api,
-                        qbClient: globalThis.qbClient !== undefined,
-                        qbClient_mode: globalThis.qbClient?.mode,
-                        qbAuth: qbAuth !== null
-                    },
                     config: {
                         pricingTableId: CONFIG.pricingTableId,
-                        vehiclesTableId: CONFIG.vehiclesTableId,
-                        hasAppToken: CONFIG.appToken && CONFIG.appToken.length > 0,
-                        hasOAuth: CONFIG.oauth && CONFIG.oauth.clientId && CONFIG.oauth.clientId.length > 0
+                        vehiclesTableId: CONFIG.vehiclesTableId
                     }
                 };
 
                 // Display debug info
                 debugInfo.textContent = JSON.stringify(debugData, null, 2);
 
-                // Try to query a single record to test connection
-                let testPassed = false;
-                let testMethod = 'none';
+                // Test using XML API (guaranteed to work in QB codepages)
+                console.log('[Test] Using XML API (CORS-free)...');
+                
+                const xmlQuery = `<?xml version="1.0" encoding="UTF-8"?>
+<qdbapi>
+    <query>{3.GT.0}</query>
+    <clist>3</clist>
+    <options>num-1</options>
+</qdbapi>`;
 
-                // Wait for qdb.api
-                const qdbAvailable = await waitForQdbApi(3000);
+                const url = `/db/${CONFIG.pricingTableId}?a=API_DoQuery`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/xml'
+                    },
+                    body: xmlQuery,
+                    credentials: 'include'
+                });
 
-                if (qdbAvailable) {
-                    console.log('[Test] Trying qdb.api...');
-                    try {
-                        const testQuery = await qdb.api.queryRecords({
-                            from: CONFIG.pricingTableId,
-                            select: [3], // Just get Record ID
-                            top: 1
-                        });
-                        testPassed = true;
-                        testMethod = 'qdb.api';
-                        console.log('[Test] ✅ qdb.api works!', testQuery);
-                    } catch (e) {
-                        console.warn('[Test] qdb.api failed:', e);
-                    }
+                const responseText = await response.text();
+                
+                if (!response.ok) {
+                    throw new Error(`XML API test failed: ${responseText}`);
                 }
 
-                if (!testPassed && globalThis.qbClient && globalThis.qbClient.mode !== 'shim') {
-                    console.log('[Test] Trying session client...');
-                    try {
-                        const testQuery = await globalThis.qbClient.post('/records/query', {
-                            from: CONFIG.pricingTableId,
-                            select: [3],
-                            options: { top: 1 }
-                        });
-                        testPassed = true;
-                        testMethod = 'session client';
-                        console.log('[Test] ✅ session client works!', testQuery);
-                    } catch (e) {
-                        console.warn('[Test] session client failed:', e);
-                    }
-                }
-
-                if (!testPassed && typeof QB !== 'undefined' && QB.api) {
-                    console.log('[Test] Trying QB.api...');
-                    try {
-                        const testQuery = await QB.api.queryRecords({
-                            from: CONFIG.pricingTableId,
-                            select: [3],
-                            top: 1
-                        });
-                        testPassed = true;
-                        testMethod = 'QB.api';
-                        console.log('[Test] ✅ QB.api works!', testQuery);
-                    } catch (e) {
-                        console.warn('[Test] QB.api failed:', e);
-                    }
-                }
-
-                if (testPassed) {
-                    showSaveStatus(`✅ Connection successful via ${testMethod}!`, 'success');
+                // Check if we got a valid XML response
+                if (responseText.includes('<qdbapi>')) {
+                    showSaveStatus('✅ Connection successful via XML API!', 'success');
                     debugData.testResult = {
                         success: true,
-                        method: testMethod
+                        method: 'XML API (API_DoQuery)',
+                        response: responseText.substring(0, 200) + '...'
                     };
+                    console.log('[Test] ✅ XML API works!');
                 } else {
-                    showSaveStatus('❌ No working QuickBase API found', 'error');
-                    debugData.testResult = {
-                        success: false,
-                        error: 'No API available'
-                    };
+                    throw new Error('Invalid XML response');
                 }
 
                 debugInfo.textContent = JSON.stringify(debugData, null, 2);
@@ -890,84 +850,43 @@
                 saveButton.textContent = '💾 Saving...';
                 showSaveStatus('Saving to QuickBase...', '');
 
-                // Prepare record data for QuickBase API
-                const recordData = {
-                    [CONFIG.fields.msrp]: { value: currentPricingData.msrp },
-                    [CONFIG.fields.discount]: { value: currentPricingData.discount },
-                    [CONFIG.fields.financingRate]: { value: currentPricingData.financingRate },
-                    [CONFIG.fields.tradeInValue]: { value: currentPricingData.tradeInValue },
-                    [CONFIG.fields.finalPrice]: { value: currentPricingData.finalPrice }
-                    // Note: vehicleMake and vehicleModel are lookup fields and cannot be set directly
-                    // They would be populated via the Related Vehicle field if that relationship exists
-                };
+                console.log('[QuickBase] Using XML API (CORS-free) ✅');
 
-                        // Track whether save succeeded
-                        let saveSucceeded = false;
+                // Use XML API - works perfectly in QuickBase codepages
+                const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
+<qdbapi>
+    <field fid="${CONFIG.fields.msrp}"><value>${currentPricingData.msrp}</value></field>
+    <field fid="${CONFIG.fields.discount}"><value>${currentPricingData.discount}</value></field>
+    <field fid="${CONFIG.fields.financingRate}"><value>${currentPricingData.financingRate}</value></field>
+    <field fid="${CONFIG.fields.tradeInValue}"><value>${currentPricingData.tradeInValue}</value></field>
+    <field fid="${CONFIG.fields.finalPrice}"><value>${currentPricingData.finalPrice}</value></field>
+    <field fid="${CONFIG.fields.vehicleMake}"><value>${escapeXml(currentPricingData.vehicleMake)}</value></field>
+    <field fid="${CONFIG.fields.vehicleModel}"><value>${escapeXml(currentPricingData.vehicleModel)}</value></field>
+</qdbapi>`;
 
-                        // If OAuth is configured and we have a QuickbaseAuth instance, prefer using it
-                        if (qbAuth) {
-                            try {
-                                const access = await qbAuth.getAccessToken();
-                                if (access) {
-                                    console.log('[QuickBase] Using OAuth (PKCE) via qbAuth.apiFetch');
-                                    // QuickBase REST records endpoint
-                                    const resp = await qbAuth.apiFetch('https://api.quickbase.com/v1/records', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ to: CONFIG.pricingTableId, data: [recordData] })
-                                    });
-                                    if (!resp.ok) {
-                                        const txt = await resp.text().catch(() => '');
-                                        throw new Error(`OAuth REST save failed: ${resp.status} ${txt}`);
-                                    }
-                                    await resp.json().catch(() => ({}));
-                                    showSaveStatus('✅ Saved successfully via OAuth REST API', 'success');
-                                    saveSucceeded = true;
-                                }
-                            } catch (error) {
-                                console.warn('[QuickBase] OAuth save failed, falling back', error);
-                            }
-                        }
+                const url = `/db/${CONFIG.pricingTableId}?a=API_AddRecord`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/xml'
+                    },
+                    body: xmlPayload,
+                    credentials: 'include'
+                });
 
-                        // Check what QuickBase APIs are available
-                        console.log('[QuickBase Debug] Available APIs:', {
-                            qdb: typeof qdb !== 'undefined',
-                            qdb_api: typeof qdb !== 'undefined' && qdb.api,
-                            QB: typeof QB !== 'undefined',
-                            qbClient: globalThis.qbClient !== undefined,
-                            qbClient_mode: globalThis.qbClient?.mode
-                        });
+                const responseText = await response.text();
+                
+                if (!response.ok) {
+                    throw new Error(`XML API failed: ${responseText}`);
+                }
 
-                        // Wait for qdb.api to be available (up to 3 seconds)
-                        const qdbAvailable = await waitForQdbApi(3000);
+                // Parse record ID from XML response
+                const ridMatch = responseText.match(/<rid>(\d+)<\/rid>/);
+                const recordId = ridMatch ? ridMatch[1] : 'Unknown';
 
-                        if (qdbAvailable) {
-                            console.log('[QuickBase] Using qdb.api (CORS-free) ✅');
-                            const response = await qdb.api.addRecord(CONFIG.pricingTableId, recordData);
-                            showSaveStatus(`✅ Saved successfully! Record ID: ${response.recordId}`, 'success');
-                            saveSucceeded = true;
-                        } else if (globalThis.qbClient !== undefined && globalThis.qbClient.mode !== 'shim') {
-                            console.log('[QuickBase] Using session client (should work without CORS) ✅');
-                            try {
-                                await globalThis.qbClient.post('/records', {
-                                    to: CONFIG.pricingTableId,
-                                    data: [recordData]
-                                });
-                                showSaveStatus('✅ Saved successfully via session client!', 'success');
-                                saveSucceeded = true;
-                            } catch (clientError) {
-                                console.warn('[QuickBase] Session client failed, trying QB.api', clientError);
-                            }
-                        } else if (typeof QB !== 'undefined' && QB.api) {
-                            console.log('[QuickBase] Using QB.api');
-                            const response = await QB.api.addRecord(CONFIG.pricingTableId, recordData);
-                            showSaveStatus(`✅ Saved successfully! Record ID: ${response.recordId}`, 'success');
-                            saveSucceeded = true;
-                        }
-
-                        if (!saveSucceeded) {
-                            throw new Error('QuickBase client not available. Please ensure you are accessing this page from within QuickBase.');
-                        }
+                console.log('[QuickBase] ✅ Saved successfully via XML API');
+                showSaveStatus(`✅ Saved successfully! Record ID: ${recordId}`, 'success');
 
             } catch (error) {
                 console.error('Error saving to QuickBase:', error);
