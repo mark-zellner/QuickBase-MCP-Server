@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+
+        .content {
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .contacts-list {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+        }
+
+        .contact-card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .contact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .contact-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .contact-actions button {
+            margin-left: 10px;
+            padding: 5px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .contact-info {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+
+        .hidden { display: none; }
+    </style>
+    
+    <!-- QuickBase JavaScript API -->
+    <script src="https://cdn.quickbase.com/static/lib/qdb.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📇 Contact Manager</h1>
+            <p>Manage your contacts with QuickBase</p>
+        </div>
+
+        <div class="content">
+            <div class="form-section">
+                <h2 id="formTitle">Add New Contact</h2>
+                <form id="contactForm">
+                    <input type="hidden" id="recordId">
+                    
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone</label>
+                        <input type="tel" id="phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="company">Company</label>
+                        <input type="text" id="company">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">💾 Save Contact</button>
+                    <button type="button" class="btn" id="cancelBtn" class="hidden" style="background: #6c757d; margin-top: 10px;">Cancel</button>
+                </form>
+
+                <div id="status" class="status hidden"></div>
+            </div>
+
+            <div class="contacts-list">
+                <h2>All Contacts</h2>
+                <div id="contactsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Update with your table ID
+        const CONFIG = {
+            contactsTableId: 'your_contacts_table_id', // Update this!
+            fields: {
+                firstName: 6,
+                lastName: 7,
+                email: 8,
+                phone: 9,
+                company: 10,
+                notes: 11
+            }
+        };
+
+        // DOM Elements
+        const form = document.getElementById('contactForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const statusDiv = document.getElementById('status');
+        const contactsList = document.getElementById('contactsList');
+        const formTitle = document.getElementById('formTitle');
+
+        let editingRecordId = null;
+
+        // Initialize
+        loadContacts();
+
+        // Event Listeners
+        form.addEventListener('submit', saveContact);
+        cancelBtn.addEventListener('click', cancelEdit);
+
+        async function saveContact(e) {
+            e.preventDefault();
+            
+            const contactData = {
+                [CONFIG.fields.firstName]: { value: document.getElementById('firstName').value },
+                [CONFIG.fields.lastName]: { value: document.getElementById('lastName').value },
+                [CONFIG.fields.email]: { value: document.getElementById('email').value },
+                [CONFIG.fields.phone]: { value: document.getElementById('phone').value || '' },
+                [CONFIG.fields.company]: { value: document.getElementById('company').value || '' },
+                [CONFIG.fields.notes]: { value: document.getElementById('notes').value || '' }
+            };
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '💾 Saving...';
+
+                if (typeof qdb !== 'undefined' && qdb.api) {
+                    if (editingRecordId) {
+                        // Update existing contact
+                        await qdb.api.updateRecord(CONFIG.contactsTableId, editingRecordId, contactData);
+                        showStatus('✅ Contact updated successfully!', 'success');
+                    } else {
+                        // Create new contact
+                        const response = await qdb.api.addRecord(CONFIG.contactsTableId, contactData);
+                        showStatus(`✅ Contact saved! ID: ${response.recordId}`, 'success');
+                    }
+
+                    form.reset();
+                    editingRecordId = null;
+                    formTitle.textContent = 'Add New Contact';
+                    cancelBtn.classList.add('hidden');
+                    await loadContacts();
+                } else {
+                    showStatus('❌ QuickBase API not available', 'error');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                showStatus(`❌ Failed to save: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = editingRecordId ? '💾 Update Contact' : '💾 Save Contact';
+            }
+        }
+
+        async function loadContacts() {
+            try {
+                if (typeof qdb !== 'undefined' && qdb.api) {
+                    const contacts = await qdb.api.queryRecords({
+                        from: CONFIG.contactsTableId,
+                        select: [3, ...Object.values(CONFIG.fields)],
+                        top: 100
+                    });
+
+                    displayContacts(contacts.records || []);
+                } else {
+                    showStatus('❌ QuickBase API not available', 'error');
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                showStatus(`❌ Failed to load contacts: ${error.message}`, 'error');
+            }
+        }
+
+        function displayContacts(contacts) {
+            if (contacts.length === 0) {
+                contactsList.innerHTML = '<p style="text-align: center; color: #6c757d;">No contacts yet. Add your first contact!</p>';
+                return;
+            }
+
+            contactsList.innerHTML = contacts.map(contact => {
+                const recordId = contact['3']?.value;
+                const firstName = contact[CONFIG.fields.firstName]?.value || '';
+                const lastName = contact[CONFIG.fields.lastName]?.value || '';
+                const email = contact[CONFIG.fields.email]?.value || '';
+                const phone = contact[CONFIG.fields.phone]?.value || '';
+                const company = contact[CONFIG.fields.company]?.value || '';
+                const notes = contact[CONFIG.fields.notes]?.value || '';
+
+                return `
+                    <div class="contact-card">
+                        <div class="contact-header">
+                            <span class="contact-name">${firstName} ${lastName}</span>
+                            <div class="contact-actions">
+                                <button class="btn-edit" onclick="editContact(${recordId})">✏️ Edit</button>
+                                <button class="btn-delete" onclick="deleteContact(${recordId})">🗑️ Delete</button>
+                            </div>
+                        </div>
+                        <div class="contact-info">
+                            ${email ? `📧 ${email}<br>` : ''}
+                            ${phone ? `📞 ${phone}<br>` : ''}
+                            ${company ? `🏢 ${company}<br>` : ''}
+                            ${notes ? `📝 ${notes}` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function editContact(recordId) {
+            try {
+                if (typeof qdb !== 'undefined' && qdb.api) {
+                    const response = await qdb.api.queryRecords({
+                        from: CONFIG.contactsTableId,
+                        where: `{3.EX.'${recordId}'}`,
+                        select: [3, ...Object.values(CONFIG.fields)]
+                    });
+
+                    const contact = response.records?.[0];
+                    if (contact) {
+                        editingRecordId = recordId;
+                        formTitle.textContent = 'Edit Contact';
+                        cancelBtn.classList.remove('hidden');
+                        
+                        document.getElementById('firstName').value = contact[CONFIG.fields.firstName]?.value || '';
+                        document.getElementById('lastName').value = contact[CONFIG.fields.lastName]?.value || '';
+                        document.getElementById('email').value = contact[CONFIG.fields.email]?.value || '';
+                        document.getElementById('phone').value = contact[CONFIG.fields.phone]?.value || '';
+                        document.getElementById('company').value = contact[CONFIG.fields.company]?.value || '';
+                        document.getElementById('notes').value = contact[CONFIG.fields.notes]?.value || '';
+                        
+                        submitBtn.textContent = '💾 Update Contact';
+                        
+                        // Scroll to form
+                        form.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            } catch (error) {
+                console.error('Edit error:', error);
+                showStatus(`❌ Failed to load contact: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteContact(recordId) {
+            if (!confirm('Are you sure you want to delete this contact?')) {
+                return;
+            }
+
+            try {
+                if (typeof qdb !== 'undefined' && qdb.api) {
+                    await qdb.api.deleteRecord(CONFIG.contactsTableId, recordId);
+                    showStatus('✅ Contact deleted successfully!', 'success');
+                    await loadContacts();
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showStatus(`❌ Failed to delete: ${error.message}`, 'error');
+            }
+        }
+
+        function cancelEdit() {
+            editingRecordId = null;
+            form.reset();
+            formTitle.textContent = 'Add New Contact';
+            cancelBtn.classList.add('hidden');
+            submitBtn.textContent = '💾 Save Contact';
+        }
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Make functions global for inline onclick handlers
+        window.editContact = editContact;
+        window.deleteContact = deleteContact;
+    </script>
+</body>
+</html>
+```

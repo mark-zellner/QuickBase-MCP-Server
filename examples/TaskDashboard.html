@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.quickbase.com/static/lib/qdb.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 { 
+            font-size: 2.5em; 
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            font-size: 1.5em;
+            color: #495057;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .stat-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.2em;
+            color: #6c757d;
+        }
+
+        .task-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            background: #f8f9fa;
+            transition: transform 0.2s;
+        }
+
+        .task-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .task-title {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .task-meta {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-todo { background: #fff3cd; color: #856404; }
+        .status-progress { background: #cfe2ff; color: #084298; }
+        .status-done { background: #d1e7dd; color: #0f5132; }
+
+        .priority-high { border-left-color: #dc3545; }
+        .priority-medium { border-left-color: #ffc107; }
+        .priority-low { border-left-color: #28a745; }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .refresh-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .refresh-btn:hover { transform: translateY(-2px); }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+
+        .hidden { display: none; }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Task Dashboard</h1>
+            <p>Real-time analytics and insights from QuickBase</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card stat-card">
+                <div class="stat-value" id="totalTasks">0</div>
+                <div class="stat-label">Total Tasks</div>
+            </div>
+
+            <div class="card stat-card">
+                <div class="stat-value" id="completedTasks">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+
+            <div class="card stat-card">
+                <div class="stat-value" id="inProgressTasks">0</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+
+            <div class="card stat-card">
+                <div class="stat-value" id="completionRate">0%</div>
+                <div class="stat-label">Completion Rate</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h2>📈 Status Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🎯 Priority Breakdown</h2>
+                <div class="chart-container">
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 Recent Tasks</h2>
+            <div id="tasksList" class="task-list">
+                <div class="loading">Loading tasks...</div>
+            </div>
+            <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh Dashboard</button>
+            <div id="status" class="status hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Update with your table ID
+        const CONFIG = {
+            tasksTableId: 'your_tasks_table_id', // Update this!
+            fields: {
+                title: 6,
+                status: 7,       // Values: To Do, In Progress, Done
+                priority: 8,     // Values: High, Medium, Low
+                assignee: 9,
+                dueDate: 10
+            }
+        };
+
+        let statusChart = null;
+        let priorityChart = null;
+
+        // Initialize dashboard
+        loadDashboard();
+
+        async function loadDashboard() {
+            try {
+                showStatus('Loading dashboard data...', 'info');
+
+                if (typeof qdb !== 'undefined' && qdb.api) {
+                    const response = await qdb.api.queryRecords({
+                        from: CONFIG.tasksTableId,
+                        select: [3, ...Object.values(CONFIG.fields)],
+                        top: 1000
+                    });
+
+                    const tasks = response.records || [];
+                    
+                    updateStats(tasks);
+                    updateCharts(tasks);
+                    displayTasks(tasks);
+
+                    document.getElementById('status').classList.add('hidden');
+                } else {
+                    showStatus('❌ QuickBase API not available', 'error');
+                }
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+                showStatus(`❌ Failed to load dashboard: ${error.message}`, 'error');
+            }
+        }
+
+        function updateStats(tasks) {
+            const total = tasks.length;
+            const completed = tasks.filter(t => t[CONFIG.fields.status]?.value === 'Done').length;
+            const inProgress = tasks.filter(t => t[CONFIG.fields.status]?.value === 'In Progress').length;
+            const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('totalTasks').textContent = total;
+            document.getElementById('completedTasks').textContent = completed;
+            document.getElementById('inProgressTasks').textContent = inProgress;
+            document.getElementById('completionRate').textContent = completionRate + '%';
+        }
+
+        function updateCharts(tasks) {
+            // Status distribution
+            const statusCounts = {
+                'To Do': 0,
+                'In Progress': 0,
+                'Done': 0
+            };
+
+            const priorityCounts = {
+                'High': 0,
+                'Medium': 0,
+                'Low': 0
+            };
+
+            for (const task of tasks) {
+                const status = task[CONFIG.fields.status]?.value || 'To Do';
+                const priority = task[CONFIG.fields.priority]?.value || 'Medium';
+                
+                if (statusCounts.hasOwnProperty(status)) {
+                    statusCounts[status]++;
+                }
+                if (priorityCounts.hasOwnProperty(priority)) {
+                    priorityCounts[priority]++;
+                }
+            }
+
+            // Destroy existing charts
+            if (statusChart) statusChart.destroy();
+            if (priorityChart) priorityChart.destroy();
+
+            // Status chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#ffc107', '#0d6efd', '#198754']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Priority chart
+            const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+            priorityChart = new Chart(priorityCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(priorityCounts),
+                    datasets: [{
+                        label: 'Tasks by Priority',
+                        data: Object.values(priorityCounts),
+                        backgroundColor: ['#dc3545', '#ffc107', '#28a745']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function displayTasks(tasks) {
+            const tasksList = document.getElementById('tasksList');
+            
+            if (tasks.length === 0) {
+                tasksList.innerHTML = '<div class="loading">No tasks found</div>';
+                return;
+            }
+
+            // Sort by due date (most recent first)
+            const sortedTasks = tasks.slice().sort((a, b) => {
+                const dateA = a[CONFIG.fields.dueDate]?.value || '';
+                const dateB = b[CONFIG.fields.dueDate]?.value || '';
+                return dateB.localeCompare(dateA);
+            });
+
+            // Show only recent 10 tasks
+            const recentTasks = sortedTasks.slice(0, 10);
+
+            tasksList.innerHTML = recentTasks.map(task => {
+                const title = task[CONFIG.fields.title]?.value || 'Untitled Task';
+                const status = task[CONFIG.fields.status]?.value || 'To Do';
+                const priority = task[CONFIG.fields.priority]?.value || 'Medium';
+                const assignee = task[CONFIG.fields.assignee]?.value || 'Unassigned';
+                const dueDate = task[CONFIG.fields.dueDate]?.value || 'No due date';
+
+                const statusClass = status.toLowerCase().replace(' ', '-');
+                const priorityClass = priority.toLowerCase();
+
+                return `
+                    <div class="task-item priority-${priorityClass}">
+                        <div class="task-title">
+                            ${title}
+                            <span class="status-badge status-${statusClass}">${status}</span>
+                        </div>
+                        <div class="task-meta">
+                            👤 ${assignee} | 📅 ${formatDate(dueDate)} | 🎯 ${priority} Priority
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === 'No due date') return dateStr;
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.classList.remove('hidden');
+            
+            if (type !== 'error') {
+                setTimeout(() => {
+                    statusDiv.classList.add('hidden');
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
+```

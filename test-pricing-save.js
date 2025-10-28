@@ -6,8 +6,14 @@
 
 import axios from 'axios';
 import dotenv from 'dotenv';
+import https from 'node:https';
 
 dotenv.config();
+
+// Create axios instance with certificate bypass for development
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false // WARNING: Only use in development
+});
 
 const CONFIG = {
   realm: process.env.QB_REALM,
@@ -43,7 +49,7 @@ async function testSaveToPricingTable() {
     console.log('📋 Test 1: Verifying table access...');
     const tableResponse = await axios.get(
       `${baseURL}/tables/${CONFIG.pricingTableId}?appId=${CONFIG.appId}`,
-      { headers }
+      { headers, httpsAgent }
     );
     console.log(`✅ Table found: ${tableResponse.data.name}\n`);
 
@@ -51,7 +57,7 @@ async function testSaveToPricingTable() {
     console.log('📋 Test 2: Checking field structure...');
     const fieldsResponse = await axios.get(
       `${baseURL}/fields?tableId=${CONFIG.pricingTableId}`,
-      { headers }
+      { headers, httpsAgent }
     );
     
     const requiredFields = [
@@ -100,10 +106,17 @@ async function testSaveToPricingTable() {
     const createResponse = await axios.post(
       `${baseURL}/records`,
       recordData,
-      { headers }
+      { headers, httpsAgent }
     );
 
-    const newRecordId = createResponse.data.data[0].id;
+    const newRecordId = createResponse.data.data?.[0]?.['3']?.value || createResponse.data.metadata?.createdRecordIds?.[0];
+    
+    if (!newRecordId) {
+      console.log('⚠️  Warning: Could not extract record ID from response');
+      console.log('Response:', JSON.stringify(createResponse.data, null, 2));
+      throw new Error('Record ID not found in response');
+    }
+    
     console.log(`✅ Record created successfully! Record ID: ${newRecordId}\n`);
 
     // Test 4: Verify the saved record
@@ -115,7 +128,7 @@ async function testSaveToPricingTable() {
         where: `{3.EX.'${newRecordId}'}`, // Field 3 is typically Record ID
         select: [3, ...requiredFields]
       },
-      { headers }
+      { headers, httpsAgent }
     );
 
     if (queryResponse.data.data.length > 0) {
@@ -166,6 +179,7 @@ async function testSaveToPricingTable() {
       `${baseURL}/records?tableId=${CONFIG.pricingTableId}`,
       {
         headers,
+        httpsAgent,
         data: {
           from: CONFIG.pricingTableId,
           where: `{3.EX.'${newRecordId}'}`
