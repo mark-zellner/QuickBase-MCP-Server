@@ -644,24 +644,13 @@
                 debugInfo.textContent = JSON.stringify(debugData, null, 2);
 
                 // Test using XML API (guaranteed to work in QB codepages)
-                console.log('[Test] Using XML API (CORS-free)...');
+                console.log('[Test] Using URL-based API (session-based, no token needed)...');
                 
-                const xmlQuery = `<?xml version="1.0" encoding="UTF-8"?>
-<qdbapi>
-    <apptoken>bvhuaz7pn</apptoken>
-    <query>{3.GT.0}</query>
-    <clist>3</clist>
-    <options>num-1</options>
-</qdbapi>`;
-
-                const url = `/db/${CONFIG.pricingTableId}?a=API_DoQuery`;
+                // Use URL parameters instead of XML body (works with session auth!)
+                const url = `/db/${CONFIG.pricingTableId}?a=API_DoQuery&query={3.GT.0}&clist=3&options=num-1`;
                 
                 const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/xml'
-                    },
-                    body: xmlQuery,
+                    method: 'GET',
                     credentials: 'include'
                 });
 
@@ -853,27 +842,22 @@
 
                 console.log('[QuickBase] Using XML API (CORS-free) ✅');
 
-                // Use XML API - works perfectly in QuickBase codepages
-                const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
-<qdbapi>
-    <apptoken>bvhuaz7pn</apptoken>
-    <field fid="${CONFIG.fields.msrp}"><value>${currentPricingData.msrp}</value></field>
-    <field fid="${CONFIG.fields.discount}"><value>${currentPricingData.discount}</value></field>
-    <field fid="${CONFIG.fields.financingRate}"><value>${currentPricingData.financingRate}</value></field>
-    <field fid="${CONFIG.fields.tradeInValue}"><value>${currentPricingData.tradeInValue}</value></field>
-    <field fid="${CONFIG.fields.finalPrice}"><value>${currentPricingData.finalPrice}</value></field>
-    <field fid="${CONFIG.fields.vehicleMake}"><value>${escapeXml(currentPricingData.vehicleMake)}</value></field>
-    <field fid="${CONFIG.fields.vehicleModel}"><value>${escapeXml(currentPricingData.vehicleModel)}</value></field>
-</qdbapi>`;
+                // Build field list for URL parameters (alternative to XML body)
+                const fields = [
+                    `_fid_${CONFIG.fields.msrp}=${encodeURIComponent(currentPricingData.msrp)}`,
+                    `_fid_${CONFIG.fields.discount}=${encodeURIComponent(currentPricingData.discount)}`,
+                    `_fid_${CONFIG.fields.financingRate}=${encodeURIComponent(currentPricingData.financingRate)}`,
+                    `_fid_${CONFIG.fields.tradeInValue}=${encodeURIComponent(currentPricingData.tradeInValue)}`,
+                    `_fid_${CONFIG.fields.finalPrice}=${encodeURIComponent(currentPricingData.finalPrice)}`,
+                    `_fid_${CONFIG.fields.vehicleMake}=${encodeURIComponent(currentPricingData.vehicleMake)}`,
+                    `_fid_${CONFIG.fields.vehicleModel}=${encodeURIComponent(currentPricingData.vehicleModel)}`
+                ].join('&');
 
-                const url = `/db/${CONFIG.pricingTableId}?a=API_AddRecord`;
+                // Use URL-based API_AddRecord (session-based, no token needed!)
+                const url = `/db/${CONFIG.pricingTableId}?a=API_AddRecord&${fields}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/xml'
-                    },
-                    body: xmlPayload,
                     credentials: 'include'
                 });
 
