@@ -842,15 +842,16 @@
 
                 console.log('[QuickBase] Using XML API (CORS-free) ✅');
 
-                // Build field list for URL parameters (alternative to XML body)
+                // Build field list for URL parameters
+                // NOTE: Fields 12 and 13 (vehicleMake, vehicleModel) are LOOKUP fields
+                // They cannot be set directly and will populate from Related Vehicle (field 6)
                 const fields = [
                     `_fid_${CONFIG.fields.msrp}=${encodeURIComponent(currentPricingData.msrp)}`,
                     `_fid_${CONFIG.fields.discount}=${encodeURIComponent(currentPricingData.discount)}`,
                     `_fid_${CONFIG.fields.financingRate}=${encodeURIComponent(currentPricingData.financingRate)}`,
                     `_fid_${CONFIG.fields.tradeInValue}=${encodeURIComponent(currentPricingData.tradeInValue)}`,
-                    `_fid_${CONFIG.fields.finalPrice}=${encodeURIComponent(currentPricingData.finalPrice)}`,
-                    `_fid_${CONFIG.fields.vehicleMake}=${encodeURIComponent(currentPricingData.vehicleMake)}`,
-                    `_fid_${CONFIG.fields.vehicleModel}=${encodeURIComponent(currentPricingData.vehicleModel)}`
+                    `_fid_${CONFIG.fields.finalPrice}=${encodeURIComponent(currentPricingData.finalPrice)}`
+                    // vehicleMake (12) and vehicleModel (13) are lookup fields - excluded
                 ].join('&');
 
                 // Use URL-based API_AddRecord (session-based, no token needed!)
