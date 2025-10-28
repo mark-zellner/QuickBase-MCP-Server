@@ -11,6 +11,10 @@
             box-sizing: border-box;
         }
 
+        .hidden {
+            display: none;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -252,7 +256,7 @@
 
         #saveToQB {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            display: none;
+            /* visible by default; visibility controlled via .hidden class */
         }
 
         #saveStatus {
@@ -268,7 +272,17 @@
         #saveStatus.error {
             color: #dc3545;
         }
+        .save-actions {
+            display:flex;
+            gap:8px;
+            justify-content:center;
+            align-items:center;
+        }
     </style>
+    
+    <!-- QuickBase JavaScript API - Enables CORS-free saves -->
+    <script src="https://cdn.quickbase.com/static/lib/qdb.js"></script>
+    
 </head>
 <body>
     <div class="container">
@@ -333,7 +347,7 @@
                     <div id="loading" class="loading">
                         <p>🤖 AI is calculating optimal pricing...</p>
                     </div>
-                    <div id="results" style="display: none;">
+                    <div id="results" class="hidden">
                         <div class="results-grid">
                             <div class="result-card">
                                 <div class="result-label">Final Price</div>
@@ -361,10 +375,19 @@
                         </div>
 
                         <div class="save-section">
-                            <button type="button" id="saveToQB" class="calculate-btn" style="display: none;">
-                                💾 Save to QuickBase
-                            </button>
+                            <div class="save-actions">
+                                <button type="button" id="saveToQB" class="calculate-btn hidden">
+                                    💾 Save to QuickBase
+                                </button>
+                                <button type="button" id="testConnection" class="calculate-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    🔍 Test Connection
+                                </button>
+                            </div>
                             <div id="saveStatus"></div>
+                            <details style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: left;">
+                                <summary style="cursor: pointer; font-weight: 600; color: #495057;">🔧 Debug Info</summary>
+                                <pre id="debugInfo" style="margin-top: 10px; font-size: 0.85em; overflow-x: auto; white-space: pre-wrap;"></pre>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -395,15 +418,58 @@
     </div>
 
     <script>
-        // QuickBase Configuration - Update with your actual table and field IDs
+        // Load OAuth helper when available (local dev file). This file is included in the repo at auth/quickbase_oauth_pkce.js
+        (function loadOAuthHelper(){
+            try {
+                const script = document.createElement('script');
+                script.src = '/auth/quickbase_oauth_pkce.js';
+                script.onload = () => console.log('[OAuth] quickbase_oauth_pkce loaded');
+                script.onerror = () => console.log('[OAuth] quickbase_oauth_pkce not found');
+                document.head.appendChild(script);
+            } catch (e) {
+                console.warn('[OAuth] failed to load helper', e);
+            }
+        })();
+
+    // QuickbaseAuth instance (if OAuth configured)
+    let qbAuth = null;
+    async function initOAuthIfConfigured() {
+            try {
+                if (CONFIG.oauth && CONFIG.oauth.clientId && CONFIG.oauth.realm) {
+                    // Wait briefly for the helper to load
+                    await new Promise((r) => setTimeout(r, 200));
+                    if (typeof QuickbaseAuth === 'function') {
+                        qbAuth = new QuickbaseAuth({
+                            realm: CONFIG.oauth.realm,
+                            clientId: CONFIG.oauth.clientId,
+                            redirectUri: CONFIG.oauth.redirectUri,
+                            scopes: CONFIG.oauth.scopes || ['read:table','write:table']
+                        });
+                        try {
+                            await qbAuth.handleRedirect();
+                        } catch (err) {
+                            console.warn('[OAuth] handleRedirect failed', err);
+                        }
+                        console.log('[OAuth] initialized');
+                    } else {
+                        console.log('[OAuth] QuickbaseAuth helper not present');
+                    }
+                }
+            } catch (err) {
+                console.error('[OAuth] init failed', err);
+            }
+        }
+
+    // NOTE: initialization will be invoked after CONFIG is declared.
+    // QuickBase Configuration - Update with your actual table and field IDs
         const CONFIG = {
             pricingTableId: 'bvhuaz8wz', // Pricing Calculator table
             vehiclesTableId: 'bvhuaz7s5', // Vehicles table
 
-            // App Token (only needed if using app token authentication)
-            // Get this from: Settings → App Properties → Manage App Tokens
-            // Leave empty if using temporary token authentication
-            appToken: '', // Example: 'b10b_dsds_0_ca9aj9dtjdbp8k5vgj3nnd3zb'
+            // Optional: Application token for legacy XML API testing ONLY.
+            // WARNING: Placing tokens in client-side code is insecure. Use only for local/dev testing.
+            // Remove before publishing or use a server-side proxy.
+            appToken: '',
 
             // Field IDs from your schema
             fields: {
@@ -418,142 +484,111 @@
             }
         };
 
-        // RESILIENT LOADER v2.0 - Session Authentication Strategy
-        // Strategy: (1) QuickBase code page via script tag → (2) Local file for dev
-        //           (3) Inline fallback client
+        // Optional: OAuth PKCE client configuration. If set, the page will use browser-based
+        // OAuth to obtain an access token and call QuickBase REST APIs via qbAuth.apiFetch.
+        // This avoids embedding any server tokens in the page. Configure these values for
+        // your QuickBase OAuth app (clientId must be registered with QuickBase).
+        CONFIG.oauth = {
+            // realm should be like 'yourrealm.quickbase.com'
+            realm: '',
+            clientId: '',
+            redirectUri: window.location.origin + window.location.pathname,
+            scopes: ['read:table', 'write:table']
+        };
+
+        // RESILIENT LOADER - Session Authentication Strategy (NO USER TOKENS)
+        // Strategy: (1) QuickBase code page script tag → (2) fetch+eval fallback
+        //           (3) local file (dev) → (4) shim client
         (function loadQuickBaseClient(){
-            const IS_QB = /quickbase\.com$/i.test(location.hostname);
+            const IS_QB = /quickbase\.com$/i.test(location.hostname) || location.hostname.includes('quickbase.com');
             const CODEPAGE = '/db/bvhuaz7pn?a=dbpage&pageID=3'; // Codepage Hero library at pageID=3
             const LOCAL = 'quickbase_codepage_hero.js';
+            // CDN fallback (auto-served from GitHub via jsDelivr). Adjust if you host elsewhere.
+            const CDN = 'https://cdn.jsdelivr.net/gh/mark-zellner/QuickBase-MCP-Server@main/quickbase_codepage_hero.js';
 
-            // Check if already loaded
-            if (typeof window.qbClient !== 'undefined' && window.qbClient.mode !== 'shim') {
-                console.log('[QB Loader] Client already loaded');
-                return;
-            }
-
-            function loadScript(src) {
-                return new Promise((resolve, reject) => {
+            function attemptScript(src) {
+                return new Promise((resolve) => {
                     const script = document.createElement('script');
                     script.src = src;
-                    script.onload = () => {
-                        // Check if client was successfully exported
-                        if (typeof window.qbClient !== 'undefined' && window.qbClient.mode !== 'shim') {
-                            console.log(`[QB Loader] ✓ Loaded from: ${src}`);
-                            resolve(true);
-                        } else {
-                            reject(new Error('Client not exported properly'));
-                        }
-                    };
-                    script.onerror = () => {
-                        console.warn(`[QB Loader] ✗ Failed to load: ${src}`);
-                        reject(new Error(`Failed to load ${src}`));
-                    };
+                    script.onload = () => resolve(true);
+                    script.onerror = () => resolve(false);
                     document.head.appendChild(script);
                 });
             }
 
-            async function init() {
+            async function attemptFetchEval(src) {
                 try {
-                    // Strategy 1: Try codepage first if in QuickBase
-                    if (IS_QB) {
-                        try {
-                            await loadScript(CODEPAGE);
-                            return;
-                        } catch (e) {
-                            console.warn('[QB Loader] Codepage failed, trying local');
+                    const resp = await fetch(src, { credentials: 'include' });
+                    if (!resp.ok) {
+                        return false;
+                    }
+
+                    let txt = await resp.text();
+                    if (/<script/i.test(txt)) {
+                        const match = txt.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+                        if (match) {
+                            txt = match[1];
                         }
                     }
 
-                    // Strategy 2: Try local file (for development)
-                    try {
-                        await loadScript(LOCAL);
-                        return;
-                    } catch (e) {
-                        console.warn('[QB Loader] Local file failed');
+                    if (!/class\s+client|function\s+client/.test(txt)) {
+                        return false;
                     }
 
-                    // Strategy 3: Fallback - inline lightweight client
-                    console.warn('[QB Loader] Using inline fallback client');
-                    window.qbClient = {
-                        mode: 'inline',
-                        realm: IS_QB ? location.hostname.split('.')[0] : 'localhost',
-                        tokenCache: new Map(),
-
-                        async getTemporaryToken(tableId) {
-                            if (this.tokenCache.has(tableId)) {
-                                const cached = this.tokenCache.get(tableId);
-                                if (Date.now() - cached.time < 300000) return cached.token;
-                            }
-
-                            const resp = await fetch(`https://api.quickbase.com/v1/auth/temporary/${tableId}`, {
-                                method: 'GET',
-                                headers: { 'QB-Realm-Hostname': `${this.realm}.quickbase.com` },
-                                credentials: 'include'
-                            });
-
-                            if (!resp.ok) throw new Error('Failed to get temp token');
-                            const data = await resp.json();
-                            this.tokenCache.set(tableId, { token: data.temporaryAuthorization, time: Date.now() });
-                            return data.temporaryAuthorization;
-                        },
-
-                        async createRecords(tableId, records) {
-                            const token = await this.getTemporaryToken(tableId);
-                            const resp = await fetch('https://api.quickbase.com/v1/records', {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `QB-TEMP-TOKEN ${token}`,
-                                    'QB-Realm-Hostname': `${this.realm}.quickbase.com`,
-                                    'Content-Type': 'application/json'
-                                },
-                                credentials: 'omit',
-                                body: JSON.stringify({
-                                    to: tableId,
-                                    data: Array.isArray(records) ? records : [records]
-                                })
-                            });
-
-                            if (!resp.ok) {
-                                const error = await resp.text();
-                                throw new Error(`HTTP ${resp.status}: ${error}`);
-                            }
-
-                            return await resp.json();
-                        },
-
-                        async queryRecords(tableId, options = {}) {
-                            const token = await this.getTemporaryToken(tableId);
-                            const resp = await fetch('https://api.quickbase.com/v1/records/query', {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `QB-TEMP-TOKEN ${token}`,
-                                    'QB-Realm-Hostname': `${this.realm}.quickbase.com`,
-                                    'Content-Type': 'application/json'
-                                },
-                                credentials: 'omit',
-                                body: JSON.stringify({ from: tableId, ...options })
-                            });
-
-                            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                            return await resp.json();
-                        }
-                    };
-
-                    console.log('[QB Loader] ✓ Inline client initialized');
-
+                    // eslint-disable-next-line no-eval
+                    (0, eval)(txt);
+                    return true;
                 } catch (error) {
-                    console.error('[QB Loader] Fatal error:', error);
-                    // Last resort: shim that throws helpful errors
-                    window.qbClient = {
-                        mode: 'error',
-                        createRecords: () => { throw new Error('QuickBase client failed to load. Check console for details.'); },
-                        queryRecords: () => { throw new Error('QuickBase client failed to load. Check console for details.'); }
-                    };
+                    console.warn('[QuickBaseClient] fetch-eval failed', error);
+                    return false;
                 }
             }
 
-            init();
+            function exportClient(tag) {
+                const resolvedClient = globalThis.qbClient
+                    ?? (typeof client === 'undefined' ? undefined : client)
+                    ?? globalThis.window?.qbClient;
+
+                if (!resolvedClient) {
+                    return false;
+                }
+
+                globalThis.qbClient = resolvedClient;
+                globalThis.Client = resolvedClient;
+                globalThis.client = resolvedClient;
+                console.log(`[QuickBaseClient] exported (${tag})`);
+                return true;
+            }
+
+            (async function run(){
+                const strategies = IS_QB
+                    ? [
+                        { action: () => attemptScript(CODEPAGE), tag: 'script' },
+                        { action: () => attemptScript(CDN), tag: 'cdn' },
+                        { action: () => attemptFetchEval(CODEPAGE), tag: 'fetch-eval' },
+                        { action: () => attemptScript(LOCAL), tag: 'local' }
+                    ]
+                    : [
+                        { action: () => attemptScript(LOCAL), tag: 'local' },
+                        { action: () => attemptScript(CDN), tag: 'cdn' },
+                        { action: () => attemptScript(CODEPAGE), tag: 'codepage-dev' }
+                    ];
+
+            for (const { action, tag } of strategies) {
+                    const loaded = await action();
+                    if (loaded && exportClient(tag)) {
+                        return;
+                    }
+                }
+
+                console.error('[QuickBaseClient] All strategies failed - using shim');
+                class QuickBaseShimClient {
+                    mode = 'shim';
+                    async post() { throw new Error('shim'); }
+                    async get() { throw new Error('shim'); }
+                }
+                globalThis.qbClient = new QuickBaseShimClient();
+            })();
         })();
 
         // Vehicle data for demo purposes
@@ -573,38 +608,135 @@
         const loading = document.getElementById('loading');
         const saveButton = document.getElementById('saveToQB');
         const saveStatus = document.getElementById('saveStatus');
+        const testConnectionButton = document.getElementById('testConnection');
+        const debugInfo = document.getElementById('debugInfo');
 
         // Store current calculation results
         let currentPricingData = null;
 
-        // Configure app token if provided
-        (function configureAuth() {
-            // Wait for client to be ready
-            const checkClient = setInterval(() => {
-                if (window.qbClient && window.qbClient.mode !== 'error') {
-                    clearInterval(checkClient);
-
-                    // If app token is configured, set it
-                    if (CONFIG.appToken && typeof qbClient.setAppToken === 'function') {
-                        qbClient.setAppToken(CONFIG.appToken);
-                        console.log('[MyDealership] ✅ App token configured');
-                    } else if (CONFIG.appToken) {
-                        console.warn('[MyDealership] ⚠️ App token provided but client does not support setAppToken()');
-                        console.warn('Make sure you deployed the app token version of the library');
-                    } else {
-                        console.log('[MyDealership] Using session-based authentication');
-                    }
-                }
-            }, 100);
-
-            // Timeout after 10 seconds
-            setTimeout(() => clearInterval(checkClient), 10000);
-        })();
+        // Initialize OAuth after CONFIG is defined
+        initOAuthIfConfigured();
 
         // Event Listeners
         vehicleSelect.addEventListener('change', updateVehicleMSRP);
         form.addEventListener('submit', calculatePricing);
         saveButton.addEventListener('click', saveToQuickBase);
+        testConnectionButton.addEventListener('click', testQuickBaseConnection);
+
+        // Test QuickBase Connection
+        async function testQuickBaseConnection() {
+            testConnectionButton.disabled = true;
+            testConnectionButton.textContent = '🔍 Testing...';
+            showSaveStatus('Testing QuickBase connection...', '');
+
+            try {
+                const debugData = {
+                    timestamp: new Date().toISOString(),
+                    hostname: location.hostname,
+                    isQuickBase: /quickbase\.com$/i.test(location.hostname),
+                    apis: {
+                        qdb: typeof qdb !== 'undefined',
+                        qdb_api: typeof qdb !== 'undefined' && qdb.api,
+                        QB: typeof QB !== 'undefined',
+                        QB_api: typeof QB !== 'undefined' && QB.api,
+                        qbClient: globalThis.qbClient !== undefined,
+                        qbClient_mode: globalThis.qbClient?.mode,
+                        qbAuth: qbAuth !== null
+                    },
+                    config: {
+                        pricingTableId: CONFIG.pricingTableId,
+                        vehiclesTableId: CONFIG.vehiclesTableId,
+                        hasAppToken: CONFIG.appToken && CONFIG.appToken.length > 0,
+                        hasOAuth: CONFIG.oauth && CONFIG.oauth.clientId && CONFIG.oauth.clientId.length > 0
+                    }
+                };
+
+                // Display debug info
+                debugInfo.textContent = JSON.stringify(debugData, null, 2);
+
+                // Try to query a single record to test connection
+                let testPassed = false;
+                let testMethod = 'none';
+
+                // Wait for qdb.api
+                const qdbAvailable = await waitForQdbApi(3000);
+
+                if (qdbAvailable) {
+                    console.log('[Test] Trying qdb.api...');
+                    try {
+                        const testQuery = await qdb.api.queryRecords({
+                            from: CONFIG.pricingTableId,
+                            select: [3], // Just get Record ID
+                            top: 1
+                        });
+                        testPassed = true;
+                        testMethod = 'qdb.api';
+                        console.log('[Test] ✅ qdb.api works!', testQuery);
+                    } catch (e) {
+                        console.warn('[Test] qdb.api failed:', e);
+                    }
+                }
+
+                if (!testPassed && globalThis.qbClient && globalThis.qbClient.mode !== 'shim') {
+                    console.log('[Test] Trying session client...');
+                    try {
+                        const testQuery = await globalThis.qbClient.post('/records/query', {
+                            from: CONFIG.pricingTableId,
+                            select: [3],
+                            options: { top: 1 }
+                        });
+                        testPassed = true;
+                        testMethod = 'session client';
+                        console.log('[Test] ✅ session client works!', testQuery);
+                    } catch (e) {
+                        console.warn('[Test] session client failed:', e);
+                    }
+                }
+
+                if (!testPassed && typeof QB !== 'undefined' && QB.api) {
+                    console.log('[Test] Trying QB.api...');
+                    try {
+                        const testQuery = await QB.api.queryRecords({
+                            from: CONFIG.pricingTableId,
+                            select: [3],
+                            top: 1
+                        });
+                        testPassed = true;
+                        testMethod = 'QB.api';
+                        console.log('[Test] ✅ QB.api works!', testQuery);
+                    } catch (e) {
+                        console.warn('[Test] QB.api failed:', e);
+                    }
+                }
+
+                if (testPassed) {
+                    showSaveStatus(`✅ Connection successful via ${testMethod}!`, 'success');
+                    debugData.testResult = {
+                        success: true,
+                        method: testMethod
+                    };
+                } else {
+                    showSaveStatus('❌ No working QuickBase API found', 'error');
+                    debugData.testResult = {
+                        success: false,
+                        error: 'No API available'
+                    };
+                }
+
+                debugInfo.textContent = JSON.stringify(debugData, null, 2);
+
+            } catch (error) {
+                console.error('[Test] Error:', error);
+                showSaveStatus(`❌ Test failed: ${error.message}`, 'error');
+                debugInfo.textContent = JSON.stringify({
+                    error: error.message,
+                    stack: error.stack
+                }, null, 2);
+            } finally {
+                testConnectionButton.disabled = false;
+                testConnectionButton.textContent = '🔍 Test Connection';
+            }
+        }
 
         function updateVehicleMSRP() {
             const selectedVehicle = vehicleSelect.value;
@@ -618,7 +750,7 @@
 
             // Show loading
             loading.classList.add('show');
-            results.style.display = 'none';
+            results.classList.add('hidden');
 
             // Get form values
             const selectedVehicle = vehicleSelect.value;
@@ -629,11 +761,9 @@
             const loanTerm = Number.parseInt(document.getElementById('loanTerm').value) || 60;
 
             // AI-powered pricing calculation
-            setTimeout(() => {
-                performPricingCalculation(selectedVehicle, msrp, discount, financingRate, tradeInValue, loanTerm);
-                loading.classList.remove('show');
-                results.style.display = 'block';
-            }, 1500); // Simulate AI processing time
+            performPricingCalculation(selectedVehicle, msrp, discount, financingRate, tradeInValue, loanTerm);
+            loading.classList.remove('show');
+            results.classList.remove('hidden');
         }
 
         function performPricingCalculation(selectedVehicle, msrp, discount, financingRate, tradeInValue, loanTerm) {
@@ -684,7 +814,7 @@
             updateBreakdown(msrp, discount, tradeInValue, totalFinancingCost, finalPrice);
 
             // Show save button
-            saveButton.style.display = 'block';
+            saveButton.classList.remove('hidden');
             saveStatus.textContent = '';
             saveStatus.className = '';
         }
@@ -730,7 +860,24 @@
             updateVehicleMSRP();
         }
 
-        // QuickBase Integration Functions - Updated with temp token authentication
+        // QuickBase Integration Functions - Updated with proper authentication
+        
+        // Helper function to wait for qdb.api availability
+        async function waitForQdbApi(maxWaitMs = 5000) {
+            const startTime = Date.now();
+            
+            while (Date.now() - startTime < maxWaitMs) {
+                if (typeof qdb !== 'undefined' && qdb.api) {
+                    console.log('[qdb.api] Available after waiting ✅');
+                    return true;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            console.warn('[qdb.api] Not available after waiting ⚠️');
+            return false;
+        }
+
         async function saveToQuickBase() {
             if (!currentPricingData) {
                 showSaveStatus('No pricing data to save', 'error');
@@ -743,48 +890,87 @@
                 saveButton.textContent = '💾 Saving...';
                 showSaveStatus('Saving to QuickBase...', '');
 
-                // Wait for client to be ready
-                let retries = 0;
-                while (!window.qbClient && retries < 50) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    retries++;
-                }
-
-                if (!window.qbClient || window.qbClient.mode === 'error') {
-                    throw new Error('QuickBase client not available. Check console for loading errors.');
-                }
-
                 // Prepare record data for QuickBase API
                 const recordData = {
                     [CONFIG.fields.msrp]: { value: currentPricingData.msrp },
                     [CONFIG.fields.discount]: { value: currentPricingData.discount },
                     [CONFIG.fields.financingRate]: { value: currentPricingData.financingRate },
                     [CONFIG.fields.tradeInValue]: { value: currentPricingData.tradeInValue },
-                    [CONFIG.fields.finalPrice]: { value: currentPricingData.finalPrice },
-                    [CONFIG.fields.vehicleMake]: { value: currentPricingData.vehicleMake },
-                    [CONFIG.fields.vehicleModel]: { value: currentPricingData.vehicleModel }
+                    [CONFIG.fields.finalPrice]: { value: currentPricingData.finalPrice }
+                    // Note: vehicleMake and vehicleModel are lookup fields and cannot be set directly
+                    // They would be populated via the Related Vehicle field if that relationship exists
                 };
 
-                console.log('[Save] Using client mode:', window.qbClient.mode);
-                console.log('[Save] Record data:', recordData);
+                        // Track whether save succeeded
+                        let saveSucceeded = false;
 
-                // Use the new createRecords API
-                const result = await window.qbClient.createRecords(
-                    CONFIG.pricingTableId,
-                    [recordData]
-                );
+                        // If OAuth is configured and we have a QuickbaseAuth instance, prefer using it
+                        if (qbAuth) {
+                            try {
+                                const access = await qbAuth.getAccessToken();
+                                if (access) {
+                                    console.log('[QuickBase] Using OAuth (PKCE) via qbAuth.apiFetch');
+                                    // QuickBase REST records endpoint
+                                    const resp = await qbAuth.apiFetch('https://api.quickbase.com/v1/records', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ to: CONFIG.pricingTableId, data: [recordData] })
+                                    });
+                                    if (!resp.ok) {
+                                        const txt = await resp.text().catch(() => '');
+                                        throw new Error(`OAuth REST save failed: ${resp.status} ${txt}`);
+                                    }
+                                    await resp.json().catch(() => ({}));
+                                    showSaveStatus('✅ Saved successfully via OAuth REST API', 'success');
+                                    saveSucceeded = true;
+                                }
+                            } catch (error) {
+                                console.warn('[QuickBase] OAuth save failed, falling back', error);
+                            }
+                        }
 
-                console.log('[Save] Success:', result);
+                        // Check what QuickBase APIs are available
+                        console.log('[QuickBase Debug] Available APIs:', {
+                            qdb: typeof qdb !== 'undefined',
+                            qdb_api: typeof qdb !== 'undefined' && qdb.api,
+                            QB: typeof QB !== 'undefined',
+                            qbClient: globalThis.qbClient !== undefined,
+                            qbClient_mode: globalThis.qbClient?.mode
+                        });
 
-                if (result.metadata && result.metadata.createdRecordIds) {
-                    const recordId = result.metadata.createdRecordIds[0];
-                    showSaveStatus(`✅ Saved successfully! Record ID: ${recordId}`, 'success');
-                } else {
-                    showSaveStatus('✅ Saved successfully! Record created.', 'success');
-                }
+                        // Wait for qdb.api to be available (up to 3 seconds)
+                        const qdbAvailable = await waitForQdbApi(3000);
+
+                        if (qdbAvailable) {
+                            console.log('[QuickBase] Using qdb.api (CORS-free) ✅');
+                            const response = await qdb.api.addRecord(CONFIG.pricingTableId, recordData);
+                            showSaveStatus(`✅ Saved successfully! Record ID: ${response.recordId}`, 'success');
+                            saveSucceeded = true;
+                        } else if (globalThis.qbClient !== undefined && globalThis.qbClient.mode !== 'shim') {
+                            console.log('[QuickBase] Using session client (should work without CORS) ✅');
+                            try {
+                                await globalThis.qbClient.post('/records', {
+                                    to: CONFIG.pricingTableId,
+                                    data: [recordData]
+                                });
+                                showSaveStatus('✅ Saved successfully via session client!', 'success');
+                                saveSucceeded = true;
+                            } catch (clientError) {
+                                console.warn('[QuickBase] Session client failed, trying QB.api', clientError);
+                            }
+                        } else if (typeof QB !== 'undefined' && QB.api) {
+                            console.log('[QuickBase] Using QB.api');
+                            const response = await QB.api.addRecord(CONFIG.pricingTableId, recordData);
+                            showSaveStatus(`✅ Saved successfully! Record ID: ${response.recordId}`, 'success');
+                            saveSucceeded = true;
+                        }
+
+                        if (!saveSucceeded) {
+                            throw new Error('QuickBase client not available. Please ensure you are accessing this page from within QuickBase.');
+                        }
 
             } catch (error) {
-                console.error('[Save] Error:', error);
+                console.error('Error saving to QuickBase:', error);
                 showSaveStatus(`❌ Failed to save: ${error.message}`, 'error');
             } finally {
                 // Reset button
@@ -796,6 +982,59 @@
         function showSaveStatus(message, statusClass) {
             saveStatus.textContent = message;
             saveStatus.className = statusClass;
+        }
+
+        async function saveViaLegacyApi(tableId, fields) {
+            const xmlPayload = buildLegacyXml(fields);
+            // Build URL and include app token if provided (legacy XML API requires it in some setups)
+            let url = `/db/${tableId}?a=API_AddRecord`;
+            const headers = { 'Content-Type': 'application/xml' };
+            // Prefer temp token if available (short-lived, issued by server)
+            if (CONFIG.tempToken && CONFIG.tempToken.length > 0) {
+                // Per QuickBase docs, include temporary tokens in the Authorization header
+                headers['Authorization'] = `QB-TEMP-TOKEN ${CONFIG.tempToken}`;
+            } else if (CONFIG.appToken && CONFIG.appToken.length > 0) {
+                // If you only have a permanent user token, use Authorization: QB-USER-TOKEN {token}
+                headers['Authorization'] = `QB-USER-TOKEN ${CONFIG.appToken}`;
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers,
+                body: xmlPayload,
+                credentials: 'include'
+            });
+
+            const responseText = await response.text();
+            if (!response.ok) {
+                throw new Error(`Legacy API failed: ${responseText}`);
+            }
+
+            const match = responseText.match(/<rid>(\d+)<\/rid>/);
+            if (!match) {
+                throw new Error(`Legacy API did not return record ID: ${responseText}`);
+            }
+
+            return Number.parseInt(match[1], 10);
+        }
+
+        function buildLegacyXml(fields) {
+            const fieldXml = Object.entries(fields)
+                .map(([fid, wrapper]) => {
+                    const value = wrapper?.value ?? '';
+                    return `<field fid="${fid}"><value>${escapeXml(value)}</value></field>`;
+                })
+                .join('');
+            return `<?xml version="1.0" encoding="UTF-8"?><qdbapi>${fieldXml}</qdbapi>`;
+        }
+
+        function escapeXml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&apos;');
         }
 
         function loadVehiclesFromQuickBase() {

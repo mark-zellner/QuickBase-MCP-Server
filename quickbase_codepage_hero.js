@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/cognitive-complexity */
 /**
  * QuickBase Codepage Hero - Session Authentication Client
  * Deploy this as a separate QuickBase codepage for session-based API access
@@ -22,12 +23,12 @@
             this.tokenExpiry = 5 * 60 * 1000; // 5 minutes
 
             // Get realm from current location
-            const hostname = window.location.hostname;
+            const hostname = globalThis.location?.hostname ?? '';
             if (hostname.includes('quickbase.com')) {
                 const realmMatch = hostname.match(/^(.+)\.quickbase\.com$/);
                 this.realm = realmMatch ? realmMatch[1] : hostname;
             } else {
-                this.realm = 'localhost'; // Development mode
+                this.realm = hostname || 'localhost'; // Development mode
             }
 
             console.log('[QuickBaseClient] Initialized for realm:', this.realm);
@@ -270,6 +271,13 @@
         window.qbClient = client;
         window.Client = QuickBaseClient;
         window.QuickBaseClient = QuickBaseClient;
+    }
+
+    if (typeof globalThis !== 'undefined') {
+        globalThis.client = client;
+        globalThis.qbClient = client;
+        globalThis.Client = client;
+        globalThis.QuickBaseClient = QuickBaseClient;
     }
 
     console.log('[QuickBase Codepage Hero] v2.0.0 - Temporary token client initialized');

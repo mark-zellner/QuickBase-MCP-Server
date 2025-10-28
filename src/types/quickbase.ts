@@ -92,6 +92,7 @@ export const QuickBaseConfig = z.object({
   realm: z.string(),
   userToken: z.string(),
   appId: z.string(),
+  pricingTableId: z.string().optional().describe('Optional pricing calculator table ID'),
   timeout: z.number().default(30000),
   maxRetries: z.number().default(3)
 });

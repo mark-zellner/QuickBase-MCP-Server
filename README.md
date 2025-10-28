@@ -5,12 +5,34 @@ A comprehensive QuickBase development toolkit consisting of:
 1. **MCP Server** - Model Context Protocol server for AI-assisted QuickBase operations
 2. **Codepage Development Platform** - Web-based IDE for creating and deploying QuickBase codepages
 
+## 🎉 What's New - Enhanced Codepage Management
+
+### 11 New MCP Tools for Complete Codepage Lifecycle Management
+
+The MCP server now includes comprehensive codepage deployment, versioning, and quality assurance tools:
+
+- **📦 Deployment:** `deploy_codepage`, `update_codepage`, `import_codepage`
+- **🔍 Discovery:** `search_codepages`, `validate_codepage`, `export_codepage`
+- **👥 Collaboration:** `clone_codepage` with modifications
+- **📚 Version Control:** `save_codepage_version`, `get_codepage_versions`, `rollback_codepage`
+
+**Key Features:**
+- ✅ Automated syntax and security validation
+- ✅ Full version history and rollback
+- ✅ Search by name, tags, or target table
+- ✅ Clone templates for rapid development
+- ✅ Export to HTML/JSON/Markdown
+
+[📖 **Complete Tool Guide**](CODEPAGE_TOOLS_GUIDE.md) | [🚀 **New Features Summary**](NEW_FEATURES_SUMMARY.md)
+
+---
+
 ## Overview
 
 This repository provides three powerful tools for QuickBase development:
 
 ### 1. MCP Server
-A Model Context Protocol server that provides maximum flexibility for QuickBase operations through AI assistants like Claude. Create tables, add fields, modify relationships, and perform all QuickBase operations through MCP tools.
+A Model Context Protocol server that provides maximum flexibility for QuickBase operations through AI assistants like Claude. Create tables, add fields, modify relationships, perform CRUD operations, **and now manage codepages with full version control**.
 
 ### 2. QuickBase Codepage Hero
 A lightweight JavaScript library for building interactive QuickBase codepages. Deploy as a single codepage and use across all your QuickBase applications. **Now with v2.2 featuring pure session authentication - NO TOKENS REQUIRED!** ⭐
@@ -205,7 +227,7 @@ Add to your MCP client configuration (e.g., Claude Desktop):
   "mcpServers": {
     "quickbase": {
       "command": "node",
-      "args": ["/path/to/quickbase-mcp-server/dist/index.js"],
+      "args": ["/absolute/path/to/quickbase-mcp-server/dist/index.js"],
       "env": {
         "QB_REALM": "yourname.quickbase.com",
         "QB_USER_TOKEN": "your_token_here",
@@ -215,6 +237,8 @@ Add to your MCP client configuration (e.g., Claude Desktop):
   }
 }
 ```
+
+> Tip: Run `npm run build` first so that `dist/index.js` exists. On Windows use a path such as `C:/Users/you/QuickBase-MCP-Server/dist/index.js` in the `args` array.
 
 ## Available Tools
 
@@ -242,6 +266,28 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 - `quickbase_delete_record` - Delete record
 - `quickbase_bulk_create_records` - Create multiple records
 - `quickbase_search_records` - Search by text
+
+### Pricing Demo Tools
+- `pricing_save_record` - Save a pricing calculator record (MSRP, discount, financing, trade-in, final price, make, model)
+- `pricing_query_records` - Query pricing records with optional MSRP range and make/model filters
+- `pricing_update_record` - Update pricing-related numeric fields for an existing record
+
+Example pricing save:
+```json
+{
+  "name": "pricing_save_record",
+  "arguments": {
+    "tableId": "bvhuaz8wz", // optional if PRICING_TABLE_ID set in .env
+    "msrp": 35000,
+    "discount": 2000,
+    "financingRate": 3.9,
+    "tradeInValue": 5000,
+    "finalPrice": 28000,
+    "vehicleMake": "Toyota",
+    "vehicleModel": "Camry"
+  }
+}
+```
 
 ### Relationship Tools
 - `quickbase_create_relationship` - Create table relationship
@@ -356,6 +402,23 @@ npm test
    - Check field type is supported
    - Verify choices are provided for choice fields
    - Ensure formula syntax is correct for formula fields
+
+4. **Pricing Tool Save Fails (MCP)**
+  - Confirm `PRICING_TABLE_ID` is set or pass `tableId` argument explicitly
+  - Verify user token has access to pricing table
+  - Check field mapping (MSRP → 7, Final Price → 11)
+
+5. **Codepage Works But MCP Fails**
+  - Likely auth difference: session vs token; see `AUTH_DIFFERENCES.md`
+  - Ensure headers include `QB-Realm-Hostname`
+
+6. **"Self-signed certificate in certificate chain"**
+  - Export your corporate proxy/root certificate to a PEM file and reference it with `NODE_EXTRA_CA_CERTS=/path/to/root.pem` when running the server or tests (for example, `NODE_EXTRA_CA_CERTS=C:/certs/corp-root.pem npm test`).
+  - Keep TLS verification enabled; avoid `NODE_TLS_REJECT_UNAUTHORIZED=0` except for temporary diagnostics, as QuickBase requires validated HTTPS.
+  - See the [QuickBase Security & Compliance](https://developer.quickbase.com/platform/security) documentation for details on TLS requirements.
+
+### Auth Context Differences
+See `AUTH_DIFFERENCES.md` for a full comparison of session vs token authentication and when to use each path.
 
 ### Enable Debug Logging
 Set environment variable:
