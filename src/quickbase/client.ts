@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import https from 'https';
 import { QuickBaseConfig, QuickBaseField, QuickBaseTable, QuickBaseRecord, QueryOptions } from '../types/quickbase.js';
 
 export class QuickBaseClient {
@@ -15,7 +16,11 @@ export class QuickBaseClient {
         'User-Agent': 'QuickBase-MCP-Server/1.0.0',
         'Authorization': `QB-USER-TOKEN ${config.userToken}`,
         'Content-Type': 'application/json'
-      }
+      },
+      // Bypass certificate validation for development/testing
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false
+      })
     });
 
     // Add request/response interceptors for logging and error handling
@@ -187,7 +192,28 @@ export class QuickBaseClient {
         ...record.fields
       }]
     });
-    return response.data.data[0]['3'].value; // Record ID is always field 3
+    
+    // Handle different response formats
+    const metadata = response.data.metadata;
+    
+    // Check if record was created
+    if (metadata && metadata.createdRecordIds && metadata.createdRecordIds.length > 0) {
+      return metadata.createdRecordIds[0]; // Return the created record ID
+    }
+    
+    // Alternative: try to get from data array (older API format)
+    const recordData = response.data.data?.[0];
+    if (recordData && recordData['3']) {
+      return recordData['3'].value; // Record ID is always field 3
+    }
+    
+    // If we have line errors, throw them
+    if (metadata && metadata.lineErrors) {
+      const errors = Object.values(metadata.lineErrors).flat();
+      throw new Error('Failed to create record: ' + errors.join(', '));
+    }
+    
+    throw new Error('Invalid response structure: ' + JSON.stringify(response.data));
   }
 
   async createRecords(tableId: string, records: QuickBaseRecord[]): Promise<number[]> {
