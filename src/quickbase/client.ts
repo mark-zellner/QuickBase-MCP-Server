@@ -571,12 +571,13 @@ export class QuickBaseClient {
   // ========== CODEPAGE METHODS ==========
 
   async saveCodepage(tableId: string, name: string, code: string, description?: string): Promise<number> {
+    // Field mapping: 8=Name, 13=Code, 14=Description, 9=Version, 10=Tags, 15=Dependencies, 11=Target Table ID, 12=Active
     const recordData: Record<string, any> = {
-      6: { value: name }, // Assuming field 6 is name
-      7: { value: code }, // Assuming field 7 is code
+      8: { value: name },
+      13: { value: code },
     };
     if (description) {
-      recordData[8] = { value: description }; // Assuming field 8 is description
+      recordData[14] = { value: description };
     }
     
     const response = await this.axios.post('/records', {
@@ -625,12 +626,13 @@ export class QuickBaseClient {
     version?: string;
     active?: boolean;
   }): Promise<void> {
+    // Field mapping: 8=Name, 13=Code, 14=Description, 9=Version, 10=Tags, 15=Dependencies, 11=Target Table ID, 12=Active
     const fields: Record<string, any> = {};
     
-    if (params.code !== undefined) fields[7] = { value: params.code };
-    if (params.description !== undefined) fields[8] = { value: params.description };
+    if (params.code !== undefined) fields[13] = { value: params.code };
+    if (params.description !== undefined) fields[14] = { value: params.description };
     if (params.version !== undefined) fields[9] = { value: params.version };
-    if (params.active !== undefined) fields[13] = { value: params.active };
+    if (params.active !== undefined) fields[12] = { value: params.active };
     
     await this.updateRecord(params.tableId, params.recordId, fields);
   }
@@ -642,11 +644,12 @@ export class QuickBaseClient {
     targetTableId?: string;
     activeOnly?: boolean;
   }): Promise<any[]> {
+    // Field mapping: 8=Name, 13=Code, 14=Description, 9=Version, 10=Tags, 15=Dependencies, 11=Target Table ID, 12=Active
     const conditions: string[] = [];
     
     if (params.searchTerm) {
-      // Search in name (field 6) or description (field 8)
-      conditions.push(`({6.CT.'${params.searchTerm}'}OR{8.CT.'${params.searchTerm}'})`);
+      // Search in name (field 8) or description (field 14)
+      conditions.push(`({8.CT.'${params.searchTerm}'}OR{14.CT.'${params.searchTerm}'})`);
     }
     
     if (params.tags && params.tags.length > 0) {
@@ -655,11 +658,11 @@ export class QuickBaseClient {
     }
     
     if (params.targetTableId) {
-      conditions.push(`{12.EX.'${params.targetTableId}'}`);
+      conditions.push(`{11.EX.'${params.targetTableId}'}`);
     }
     
     if (params.activeOnly !== false) {
-      conditions.push(`{13.EX.'1'}`); // Active = true
+      conditions.push(`{12.EX.'1'}`); // Active = true
     }
     
     const where = conditions.length > 0 ? conditions.join('AND') : '';
@@ -676,16 +679,17 @@ export class QuickBaseClient {
     // Get source codepage
     const sourceCodepage = await this.getRecord(params.tableId, params.sourceRecordId);
     
+    // Field mapping: 8=Name, 13=Code, 14=Description, 9=Version, 10=Tags, 15=Dependencies, 11=Target Table ID, 12=Active
     // Create new record with cloned data
     const recordData: Record<string, any> = {
-      6: { value: params.newName },
-      7: { value: sourceCodepage['7']?.value }, // Code
-      8: { value: sourceCodepage['8']?.value || `Cloned from ${sourceCodepage['6']?.value}` }, // Description
+      8: { value: params.newName },
+      13: { value: sourceCodepage['13']?.value }, // Code
+      14: { value: sourceCodepage['14']?.value || `Cloned from ${sourceCodepage['8']?.value}` }, // Description
       9: { value: sourceCodepage['9']?.value || '1.0.0' }, // Version
       10: { value: sourceCodepage['10']?.value }, // Tags
-      11: { value: sourceCodepage['11']?.value }, // Dependencies
-      12: { value: sourceCodepage['12']?.value }, // Target Table
-      13: { value: true } // Active
+      15: { value: sourceCodepage['15']?.value }, // Dependencies
+      11: { value: sourceCodepage['11']?.value }, // Target Table
+      12: { value: true } // Active
     };
     
     // Apply modifications
@@ -800,28 +804,29 @@ export class QuickBaseClient {
   }): Promise<string> {
     const codepage = await this.getRecord(params.tableId, params.recordId);
     
+    // Field mapping: 8=Name, 13=Code, 14=Description, 9=Version, 10=Tags, 15=Dependencies, 11=Target Table ID, 12=Active
     if (params.format === 'html') {
-      return codepage['7']?.value || '';
+      return codepage['13']?.value || '';
     }
     
     if (params.format === 'json') {
       return JSON.stringify({
-        name: codepage['6']?.value,
-        code: codepage['7']?.value,
-        description: codepage['8']?.value,
+        name: codepage['8']?.value,
+        code: codepage['13']?.value,
+        description: codepage['14']?.value,
         version: codepage['9']?.value,
         tags: codepage['10']?.value?.split(',').map((t: string) => t.trim()),
-        dependencies: codepage['11']?.value?.split('\n').filter((d: string) => d.trim()),
-        targetTableId: codepage['12']?.value,
-        active: codepage['13']?.value
+        dependencies: codepage['15']?.value?.split('\n').filter((d: string) => d.trim()),
+        targetTableId: codepage['11']?.value,
+        active: codepage['12']?.value
       }, null, 2);
     }
     
     if (params.format === 'markdown') {
-      const name = codepage['6']?.value || 'Untitled';
+      const name = codepage['8']?.value || 'Untitled';
       const version = codepage['9']?.value || '1.0.0';
-      const description = codepage['8']?.value || '';
-      const code = codepage['7']?.value || '';
+      const description = codepage['14']?.value || '';
+      const code = codepage['13']?.value || '';
       
       return `# ${name} (v${version})
 
@@ -836,8 +841,8 @@ ${code}
 ## Metadata
 - **Version:** ${version}
 - **Tags:** ${codepage['10']?.value || 'None'}
-- **Target Table:** ${codepage['12']?.value || 'None'}
-- **Active:** ${codepage['13']?.value ? 'Yes' : 'No'}
+- **Target Table:** ${codepage['11']?.value || 'None'}
+- **Active:** ${codepage['12']?.value ? 'Yes' : 'No'}
 `;
     }
     
@@ -989,8 +994,8 @@ ${code}
 
   async executeCodepage(tableId: string, recordId: number, functionName: string, parameters?: Record<string, any>): Promise<any> {
     const codepage = await this.getCodepage(tableId, recordId);
-    // Extract code from the record (assuming field 7 is code)
-    const code = codepage['7']?.value;
+    // Field mapping: 8=Name, 13=Code, 14=Description, 9=Version, 10=Tags, 15=Dependencies, 11=Target Table ID, 12=Active
+    const code = codepage['13']?.value;
     if (!code) {
       throw new Error('Codepage does not contain code');
     }
