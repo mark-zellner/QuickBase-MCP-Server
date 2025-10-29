@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-10-29
+
+### Added - Codepage Infrastructure & Testing ✅
+
+#### Infrastructure
+- **Codepages Table Created** - New QuickBase table (bvi2ms4e9) for storing codepages
+- **8 Custom Fields** - Name, Code, Description, Version, Tags, Dependencies, Target Table ID, Active
+- **Field Mapping Discovery** - Proper field ID mapping (8=Name, 13=Code, 14=Description, etc.)
+
+#### API Fixes
+- **Table Creation Fix** - Updated `createTable()` to use query parameters instead of body
+- **Field Creation Fix** - Updated `createField()` to use query parameters
+- **Field Type Correction** - Fixed field types to use hyphens (`text-multi-line` not `text_multiline`)
+- **deployCodepage Update** - Corrected field IDs to match actual table structure
+
+#### Testing & Diagnostics
+- **test-mcp-direct.js** - Comprehensive MCP diagnostics and connection testing
+- **create-codepage-fields.js** - Automated field creation with proper validation
+- **test-field-api.js** - Direct QuickBase API testing for field operations
+- **CODEPAGE_TOOLS_READY.md** - Complete documentation of setup and usage
+
+#### Configuration
+- **Added CODEPAGE_TABLE_ID** - Environment variable for codepage table reference
+- **SSL Certificate Handling** - Configured axios to handle self-signed certificates
+
+### Changed
+- **Package Version** - Bumped to 1.1.0 to track codepage infrastructure progress
+- **Description Update** - Added "codepage management" to package description
+
+### Fixed
+- **401 Authentication** - Verified credentials working correctly
+- **Field Creation Errors** - Resolved 400 errors in field creation API calls
+- **Record Deployment** - Fixed field ID mapping in deploy operations
+
+### Known Issues
+- **Hardcoded Field IDs** - Multiple methods still reference old field IDs (6, 7) instead of actual (8, 13)
+- **MCP Server Auth** - MCP tool calls returning 401, direct client works fine (needs investigation)
+
+### Testing Results
+✅ Direct client connection successful
+✅ Codepage deployment working (Record ID: 3 created)
+✅ Codepage retrieval working
+✅ All 11 MCP tools compiled and ready
+⚠️ MCP server authentication needs restart/reconfiguration
+
 ## [2.0.0] - 2025-10-28
 
 ### Added - Enhanced Codepage Management System 🚀

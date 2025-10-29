@@ -55,36 +55,10 @@ const UpdateRecordSchema = z.object({
   fields: z.record(z.any()).describe('Field values to update as fieldId: value pairs')
 });
 
-// Pricing specific schemas (for demo table bvhuaz8wz)
-// Field IDs: msrp(7), discount(8), financingRate(9), tradeInValue(10), finalPrice(11), vehicleMake(12), vehicleModel(13)
-const PricingSaveSchema = z.object({
-  tableId: z.string().describe('Pricing table ID (default env PRICING_TABLE_ID)'),
-  msrp: z.number().describe('MSRP value'),
-  discount: z.number().default(0).describe('Discount amount'),
-  financingRate: z.number().default(0).describe('Financing rate percent'),
-  tradeInValue: z.number().default(0).describe('Trade-in value'),
-  finalPrice: z.number().describe('Calculated final price'),
-  vehicleMake: z.string().describe('Vehicle make'),
-  vehicleModel: z.string().describe('Vehicle model')
-});
-
-const PricingQuerySchema = z.object({
-  tableId: z.string().describe('Pricing table ID'),
-  minMsrp: z.number().optional().describe('Filter: minimum MSRP'),
-  maxMsrp: z.number().optional().describe('Filter: maximum MSRP'),
-  make: z.string().optional().describe('Filter: vehicle make'),
-  model: z.string().optional().describe('Filter: vehicle model'),
-  top: z.number().optional().describe('Limit number of records returned')
-});
-
-const PricingUpdateSchema = z.object({
-  tableId: z.string().describe('Pricing table ID'),
-  recordId: z.number().describe('Record ID to update'),
-  finalPrice: z.number().optional().describe('Updated final price'),
-  discount: z.number().optional().describe('Updated discount'),
-  financingRate: z.number().optional().describe('Updated financing rate'),
-  tradeInValue: z.number().optional().describe('Updated trade-in value')
-});
+// ========== REMOVED PRICING-SPECIFIC SCHEMAS ==========
+// These were too specific for general codepage development
+// Use the generic quickbase_query_records, quickbase_create_record, 
+// and quickbase_update_record tools instead
 
 const BulkCreateSchema = z.object({
   tableId: z.string().describe('Table ID'),
@@ -252,23 +226,7 @@ export const quickbaseTools: Tool[] = [
     }
   },
 
-  // ========== PRICING DEMO TOOLS ==========
-  {
-    name: 'pricing_save_record',
-    description: 'Save a pricing calculator record (msrp, discount, financingRate, tradeInValue, finalPrice, make, model)',
-    inputSchema: PricingSaveSchema as any
-  },
-  {
-    name: 'pricing_query_records',
-    description: 'Query pricing records with optional filters (msrp range, make, model)',
-    inputSchema: PricingQuerySchema as any
-  },
-  {
-    name: 'pricing_update_record',
-    description: 'Update selected pricing fields for an existing record',
-    inputSchema: PricingUpdateSchema as any
-  },
-
+  // ========== TABLE TOOLS ==========
   {
     name: 'quickbase_get_tables',
     description: 'Get list of all tables in the application',

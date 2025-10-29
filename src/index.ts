@@ -92,7 +92,6 @@ class QuickBaseMCPServer {
       ...this.createTableHandlers(),
       ...this.createFieldHandlers(),
       ...this.createRecordHandlers(),
-      ...this.createPricingHandlers(),
       ...this.createRelationshipHandlers(),
       ...this.createUtilityHandlers(),
       ...this.createCodepageHandlers(),
@@ -481,105 +480,6 @@ class QuickBaseMCPServer {
     };
   }
 
-  private createPricingHandlers(): Record<string, ToolHandler> {
-    return {
-      pricing_save_record: async (args) => {
-        const params = this.ensureObject(args, 'pricing_save_record');
-        const tableId = this.resolveTableId(params.tableId, 'PRICING_TABLE_ID', 'pricing table ID');
-        const fields: Record<string, any> = {
-          '7': { value: this.parseNumber(params.msrp, 'msrp') },
-          '8': { value: this.parseOptionalNumber(params.discount) ?? 0 },
-          '9': { value: this.parseOptionalNumber(params.financingRate) ?? 0 },
-          '10': { value: this.parseOptionalNumber(params.tradeInValue) ?? 0 },
-          '11': { value: this.parseNumber(params.finalPrice, 'finalPrice') },
-          '12': { value: this.toStringParam(params.vehicleMake, 'vehicleMake') },
-          '13': { value: this.toStringParam(params.vehicleModel, 'vehicleModel') }
-        };
-        const recordId = await this.qbClient.createRecord(tableId, { fields });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Pricing record created ID: ${recordId}`
-            }
-          ]
-        };
-      },
-      pricing_query_records: async (args) => {
-        const params = this.ensureObject(args, 'pricing_query_records');
-        const tableId = this.resolveTableId(params.tableId, 'PRICING_TABLE_ID', 'pricing table ID');
-        const clauses: string[] = [];
-        const minMsrp = this.parseOptionalNumber(params.minMsrp);
-        const maxMsrp = this.parseOptionalNumber(params.maxMsrp);
-        const make = this.toOptionalString(params.make);
-        const model = this.toOptionalString(params.model);
-
-        if (minMsrp !== undefined) {
-          clauses.push(`{7.GE.'${minMsrp}'}`);
-        }
-        if (maxMsrp !== undefined) {
-          clauses.push(`{7.LE.'${maxMsrp}'}`);
-        }
-        if (make) {
-          clauses.push(`{12.EX.'${make}'}`);
-        }
-        if (model) {
-          clauses.push(`{13.EX.'${model}'}`);
-        }
-
-        const data = await this.qbClient.getRecords(tableId, {
-          select: [7, 8, 9, 10, 11, 12, 13],
-          where: clauses.length > 0 ? clauses.join('AND') : undefined,
-          top: this.parseOptionalNumber(params.top)
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(data, null, 2)
-            }
-          ]
-        };
-      },
-      pricing_update_record: async (args) => {
-        const params = this.ensureObject(args, 'pricing_update_record');
-        const tableId = this.resolveTableId(params.tableId, 'PRICING_TABLE_ID', 'pricing table ID');
-        const updates: Record<string, any> = {};
-        const finalPrice = this.parseOptionalNumber(params.finalPrice);
-        const discount = this.parseOptionalNumber(params.discount);
-        const financingRate = this.parseOptionalNumber(params.financingRate);
-        const tradeInValue = this.parseOptionalNumber(params.tradeInValue);
-
-        if (finalPrice !== undefined) {
-          updates['11'] = { value: finalPrice };
-        }
-        if (discount !== undefined) {
-          updates['8'] = { value: discount };
-        }
-        if (financingRate !== undefined) {
-          updates['9'] = { value: financingRate };
-        }
-        if (tradeInValue !== undefined) {
-          updates['10'] = { value: tradeInValue };
-        }
-
-        await this.qbClient.updateRecord(
-          tableId,
-          this.parseNumber(params.recordId, 'recordId'),
-          updates
-        );
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Pricing record ${params.recordId} updated`
-            }
-          ]
-        };
-      }
-    };
-  }
-
   private createRelationshipHandlers(): Record<string, ToolHandler> {
     return {
       quickbase_create_relationship: async (args) => {
@@ -828,18 +728,16 @@ class QuickBaseMCPServer {
         const params = this.ensureObject(args, 'quickbase_deploy_codepage');
         const tableId = this.resolveTableId(params.tableId, 'CODEPAGE_TABLE_ID', 'codepage table ID');
         
-        const fields: Record<string, any> = {
-          6: { value: this.toStringParam(params.name, 'name') }, // Name field
-          7: { value: this.toStringParam(params.code, 'code') }, // Code field
-        };
-        
-        if (params.description) fields[8] = { value: params.description }; // Description
-        if (params.version) fields[9] = { value: params.version }; // Version
-        if (params.tags) fields[10] = { value: Array.isArray(params.tags) ? params.tags.join(', ') : params.tags }; // Tags
-        if (params.dependencies) fields[11] = { value: Array.isArray(params.dependencies) ? params.dependencies.join('\n') : params.dependencies }; // Dependencies
-        if (params.targetTableId) fields[12] = { value: params.targetTableId }; // Target Table
-        
-        const recordId = await this.qbClient.createRecord(tableId, { fields });
+        const recordId = await this.qbClient.deployCodepage({
+          tableId,
+          name: this.toStringParam(params.name, 'name'),
+          code: this.toStringParam(params.code, 'code'),
+          description: this.toOptionalString(params.description),
+          version: this.toOptionalString(params.version),
+          tags: params.tags as string[] | undefined,
+          dependencies: params.dependencies as string[] | undefined,
+          targetTableId: this.toOptionalString(params.targetTableId)
+        });
         
         return {
           content: [
@@ -856,13 +754,14 @@ class QuickBaseMCPServer {
         const tableId = this.resolveTableId(params.tableId, 'CODEPAGE_TABLE_ID', 'codepage table ID');
         const recordId = this.parseNumber(params.recordId, 'recordId');
         
-        const fields: Record<string, any> = {};
-        if (params.code) fields[7] = { value: params.code };
-        if (params.description) fields[8] = { value: params.description };
-        if (params.version) fields[9] = { value: params.version };
-        if (params.active !== undefined) fields[13] = { value: params.active }; // Active checkbox
-        
-        await this.qbClient.updateRecord(tableId, recordId, fields);
+        await this.qbClient.updateCodepage({
+          tableId,
+          recordId,
+          code: this.toOptionalString(params.code),
+          description: this.toOptionalString(params.description),
+          version: this.toOptionalString(params.version),
+          active: params.active as boolean | undefined
+        });
         
         return {
           content: [
@@ -878,29 +777,12 @@ class QuickBaseMCPServer {
         const params = this.ensureObject(args, 'quickbase_search_codepages');
         const tableId = this.resolveTableId(params.tableId, 'CODEPAGE_TABLE_ID', 'codepage table ID');
         
-        let where = '';
-        const conditions: string[] = [];
-        
-        if (params.searchTerm) {
-          conditions.push(`{6.CT.'${params.searchTerm}'}OR{8.CT.'${params.searchTerm}'}`); // Search name or description
-        }
-        if (params.tags && Array.isArray(params.tags)) {
-          const tagConditions = params.tags.map(tag => `{10.CT.'${tag}'}`).join('OR');
-          conditions.push(`(${tagConditions})`);
-        }
-        if (params.targetTableId) {
-          conditions.push(`{12.EX.'${params.targetTableId}'}`);
-        }
-        if (params.activeOnly) {
-          conditions.push(`{13.EX.'1'}`); // Active = true
-        }
-        
-        where = conditions.length > 0 ? conditions.join('AND') : '';
-        
-        const records = await this.qbClient.getRecords(tableId, {
-          select: [3, 6, 7, 8, 9, 10, 12, 13], // ID, Name, Code, Desc, Version, Tags, TargetTable, Active
-          where,
-          top: 100
+        const records = await this.qbClient.searchCodepages({
+          tableId,
+          searchTerm: this.toOptionalString(params.searchTerm),
+          tags: params.tags as string[] | undefined,
+          targetTableId: this.toOptionalString(params.targetTableId),
+          activeOnly: params.activeOnly !== false
         });
         
         return {
@@ -916,32 +798,19 @@ class QuickBaseMCPServer {
       quickbase_clone_codepage: async (args) => {
         const params = this.ensureObject(args, 'quickbase_clone_codepage');
         const tableId = this.resolveTableId(params.tableId, 'CODEPAGE_TABLE_ID', 'codepage table ID');
-        const sourceId = this.parseNumber(params.sourceRecordId, 'sourceRecordId');
         
-        // Get source codepage
-        const sourceRecord = await this.qbClient.getRecord(tableId, sourceId);
-        
-        // Create clone with new name
-        const fields: Record<string, any> = {
-          6: { value: params.newName }, // New name
-          7: { value: sourceRecord[7]?.value || '' }, // Copy code
-          8: { value: `Clone of: ${sourceRecord[6]?.value || 'Unknown'}` }, // Description
-        };
-        
-        // Apply modifications if provided
-        if (params.modifications) {
-          for (const [fieldId, value] of Object.entries(params.modifications)) {
-            fields[fieldId] = { value };
-          }
-        }
-        
-        const newRecordId = await this.qbClient.createRecord(tableId, { fields });
+        const newRecordId = await this.qbClient.cloneCodepage({
+          tableId,
+          sourceRecordId: this.parseNumber(params.sourceRecordId, 'sourceRecordId'),
+          newName: this.toStringParam(params.newName, 'newName'),
+          modifications: params.modifications as Record<string, any> | undefined
+        });
         
         return {
           content: [
             {
               type: 'text',
-              text: `Codepage cloned successfully! New record ID: ${newRecordId}\nOriginal: ${sourceId} → Clone: ${newRecordId}`
+              text: `Codepage cloned successfully! New record ID: ${newRecordId}`
             }
           ]
         };
@@ -949,61 +818,13 @@ class QuickBaseMCPServer {
 
       quickbase_validate_codepage: async (args) => {
         const params = this.ensureObject(args, 'quickbase_validate_codepage');
-        const code = this.toStringParam(params.code, 'code');
         
-        const results: any = {
-          valid: true,
-          warnings: [],
-          errors: [],
-          suggestions: []
-        };
-        
-        // Check syntax
-        if (params.checkSyntax !== false) {
-          try {
-            new Function(code);
-          } catch (error: any) {
-            results.valid = false;
-            results.errors.push(`Syntax Error: ${error.message}`);
-          }
-        }
-        
-        // Check for QuickBase API usage
-        if (params.checkAPIs !== false) {
-          const apiPatterns = [
-            { pattern: /qdb\.api/g, name: 'qdb.api', recommended: true },
-            { pattern: /QB\.api/g, name: 'QB.api', recommended: true },
-            { pattern: /qbClient/g, name: 'session client', recommended: true },
-            { pattern: /fetch\(/g, name: 'fetch API', recommended: false }
-          ];
-          
-          for (const { pattern, name, recommended } of apiPatterns) {
-            if (pattern.test(code)) {
-              if (recommended) {
-                results.suggestions.push(`✅ Uses ${name} (good!)`);
-              } else {
-                results.warnings.push(`⚠️ Uses ${name} - consider using qdb.api instead`);
-              }
-            }
-          }
-        }
-        
-        // Check for security issues
-        if (params.checkSecurity !== false) {
-          const securityChecks = [
-            { pattern: /eval\(/g, message: 'Uses eval() - potential security risk' },
-            { pattern: /innerHTML\s*=/g, message: 'Uses innerHTML - XSS risk, use textContent or sanitize' },
-            { pattern: /QB-USER-TOKEN|userToken/gi, message: 'Contains hardcoded token - security risk!' },
-            { pattern: /password/gi, message: 'Contains password reference - verify if intentional' }
-          ];
-          
-          for (const { pattern, message } of securityChecks) {
-            if (pattern.test(code)) {
-              results.errors.push(`🔒 Security: ${message}`);
-              results.valid = false;
-            }
-          }
-        }
+        const results = await this.qbClient.validateCodepage({
+          code: this.toStringParam(params.code, 'code'),
+          checkSyntax: params.checkSyntax !== false,
+          checkAPIs: params.checkAPIs !== false,
+          checkSecurity: params.checkSecurity !== false
+        });
         
         return {
           content: [
@@ -1018,30 +839,12 @@ class QuickBaseMCPServer {
       quickbase_export_codepage: async (args) => {
         const params = this.ensureObject(args, 'quickbase_export_codepage');
         const tableId = this.resolveTableId(params.tableId, 'CODEPAGE_TABLE_ID', 'codepage table ID');
-        const recordId = this.parseNumber(params.recordId, 'recordId');
-        const format = params.format || 'html';
         
-        const record = await this.qbClient.getRecord(tableId, recordId);
-        
-        let exportContent = '';
-        
-        if (format === 'html') {
-          exportContent = record[7]?.value || ''; // Code field
-        } else if (format === 'json') {
-          exportContent = JSON.stringify({
-            name: record[6]?.value,
-            code: record[7]?.value,
-            description: record[8]?.value,
-            version: record[9]?.value,
-            tags: record[10]?.value,
-            targetTableId: record[12]?.value
-          }, null, 2);
-        } else if (format === 'markdown') {
-          exportContent = `# ${record[6]?.value || 'Untitled'}\n\n`;
-          exportContent += `**Version:** ${record[9]?.value || 'N/A'}\n`;
-          exportContent += `**Description:** ${record[8]?.value || 'N/A'}\n\n`;
-          exportContent += `## Code\n\n\`\`\`javascript\n${record[7]?.value || ''}\n\`\`\`\n`;
-        }
+        const exportContent = await this.qbClient.exportCodepage({
+          tableId,
+          recordId: this.parseNumber(params.recordId, 'recordId'),
+          format: (params.format || 'html') as 'html' | 'json' | 'markdown'
+        });
         
         return {
           content: [
@@ -1056,45 +859,13 @@ class QuickBaseMCPServer {
       quickbase_import_codepage: async (args) => {
         const params = this.ensureObject(args, 'quickbase_import_codepage');
         const tableId = this.resolveTableId(params.tableId, 'CODEPAGE_TABLE_ID', 'codepage table ID');
-        const source = this.toStringParam(params.source, 'source');
-        const format = params.format || 'auto';
         
-        let codepageData: any = {};
-        
-        // Parse source based on format
-        if (format === 'json' || (format === 'auto' && source.trim().startsWith('{'))) {
-          codepageData = JSON.parse(source);
-        } else {
-          // Treat as HTML/code
-          codepageData = {
-            name: 'Imported Codepage',
-            code: source
-          };
-        }
-        
-        // Check if overwrite needed
-        if (!params.overwrite && codepageData.name) {
-          const existing = await this.qbClient.getRecords(tableId, {
-            where: `{6.EX.'${codepageData.name}'}`,
-            select: [3]
-          });
-          
-          if (existing.length > 0) {
-            throw new Error(`Codepage with name "${codepageData.name}" already exists. Use overwrite: true to replace.`);
-          }
-        }
-        
-        const fields: Record<string, any> = {
-          6: { value: codepageData.name || 'Imported Codepage' },
-          7: { value: codepageData.code || '' }
-        };
-        
-        if (codepageData.description) fields[8] = { value: codepageData.description };
-        if (codepageData.version) fields[9] = { value: codepageData.version };
-        if (codepageData.tags) fields[10] = { value: Array.isArray(codepageData.tags) ? codepageData.tags.join(', ') : codepageData.tags };
-        if (codepageData.targetTableId) fields[12] = { value: codepageData.targetTableId };
-        
-        const recordId = await this.qbClient.createRecord(tableId, { fields });
+        const recordId = await this.qbClient.importCodepage({
+          tableId,
+          source: this.toStringParam(params.source, 'source'),
+          format: (params.format || 'auto') as 'html' | 'json' | 'auto',
+          overwrite: params.overwrite === true
+        });
         
         return {
           content: [
@@ -1110,15 +881,13 @@ class QuickBaseMCPServer {
         const params = this.ensureObject(args, 'quickbase_save_codepage_version');
         const tableId = this.resolveTableId(params.tableId, 'CODEPAGE_VERSION_TABLE_ID', 'codepage version table ID');
         
-        const fields: Record<string, any> = {
-          6: { value: this.parseNumber(params.codepageRecordId, 'codepageRecordId') }, // Reference to main codepage
-          7: { value: this.toStringParam(params.version, 'version') }, // Version number
-          8: { value: this.toStringParam(params.code, 'code') }, // Code snapshot
-        };
-        
-        if (params.changeLog) fields[9] = { value: params.changeLog };
-        
-        const versionId = await this.qbClient.createRecord(tableId, { fields });
+        const versionId = await this.qbClient.saveCodepageVersion({
+          tableId,
+          codepageRecordId: this.parseNumber(params.codepageRecordId, 'codepageRecordId'),
+          version: this.toStringParam(params.version, 'version'),
+          code: this.toStringParam(params.code, 'code'),
+          changeLog: this.toOptionalString(params.changeLog)
+        });
         
         return {
           content: [
@@ -1133,13 +902,11 @@ class QuickBaseMCPServer {
       quickbase_get_codepage_versions: async (args) => {
         const params = this.ensureObject(args, 'quickbase_get_codepage_versions');
         const tableId = this.resolveTableId(params.tableId, 'CODEPAGE_VERSION_TABLE_ID', 'codepage version table ID');
-        const codepageId = this.parseNumber(params.codepageRecordId, 'codepageRecordId');
         
-        const versions = await this.qbClient.getRecords(tableId, {
-          where: `{6.EX.'${codepageId}'}`, // Filter by codepage reference
-          select: [3, 6, 7, 8, 9], // ID, CodepageRef, Version, Code, ChangeLog
-          sortBy: [{ fieldId: 7, order: 'DESC' }], // Sort by version DESC
-          top: params.limit || 50
+        const versions = await this.qbClient.getCodepageVersions({
+          tableId,
+          codepageRecordId: this.parseNumber(params.codepageRecordId, 'codepageRecordId'),
+          limit: this.parseOptionalNumber(params.limit)
         });
         
         return {
@@ -1154,27 +921,19 @@ class QuickBaseMCPServer {
 
       quickbase_rollback_codepage: async (args) => {
         const params = this.ensureObject(args, 'quickbase_rollback_codepage');
-        const codepageTableId = this.resolveTableId(params.tableId, 'CODEPAGE_TABLE_ID', 'codepage table ID');
-        const codepageId = this.parseNumber(params.codepageRecordId, 'codepageRecordId');
-        const versionId = this.parseNumber(params.versionRecordId, 'versionRecordId');
+        const versionTableId = this.resolveTableId(params.tableId, 'CODEPAGE_VERSION_TABLE_ID', 'codepage version table ID');
         
-        // Get version table ID (assuming it's configured)
-        const versionTableId = process.env.CODEPAGE_VERSION_TABLE_ID || 'bltcpt7db'; // Adjust as needed
-        
-        // Get the version record
-        const version = await this.qbClient.getRecord(versionTableId, versionId);
-        
-        // Update main codepage with version code
-        await this.qbClient.updateRecord(codepageTableId, codepageId, {
-          7: { value: version[8]?.value }, // Restore code
-          9: { value: version[7]?.value }  // Update version number
+        await this.qbClient.rollbackCodepage({
+          tableId: versionTableId,
+          codepageRecordId: this.parseNumber(params.codepageRecordId, 'codepageRecordId'),
+          versionRecordId: this.parseNumber(params.versionRecordId, 'versionRecordId')
         });
         
         return {
           content: [
             {
               type: 'text',
-              text: `Codepage ${codepageId} rolled back to version ${version[7]?.value}`
+              text: `Codepage rolled back successfully`
             }
           ]
         };

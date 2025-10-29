@@ -62,11 +62,12 @@ export class QuickBaseClient {
 
   async createTable(table: { name: string; description?: string }): Promise<string> {
     const response = await this.axios.post('/tables', {
-      appId: this.config.appId,
       name: table.name,
       description: table.description,
       singleRecordName: table.name.slice(0, -1), // Remove 's' for singular
       pluralRecordName: table.name
+    }, {
+      params: { appId: this.config.appId }
     });
     return response.data.id;
   }
@@ -102,7 +103,6 @@ export class QuickBaseClient {
 
   async createField(tableId: string, field: QuickBaseField): Promise<number> {
     const fieldData: any = {
-      tableId,
       label: field.label,
       fieldType: field.fieldType,
       required: field.required,
@@ -126,14 +126,15 @@ export class QuickBaseClient {
       };
     }
 
-    const response = await this.axios.post('/fields', fieldData);
+    const response = await this.axios.post('/fields', fieldData, {
+      params: { tableId }
+    });
     return response.data.id;
   }
 
   async updateField(tableId: string, fieldId: number, updates: Partial<QuickBaseField>): Promise<void> {
-    await this.axios.post(`/fields/${fieldId}`, {
-      tableId,
-      ...updates
+    await this.axios.post(`/fields/${fieldId}`, updates, {
+      params: { tableId }
     });
   }
 
@@ -583,6 +584,395 @@ export class QuickBaseClient {
       data: [recordData]
     });
     return response.data.metadata.createdRecordIds[0];
+  }
+
+  async deployCodepage(params: {
+    tableId: string;
+    name: string;
+    code: string;
+    description?: string;
+    version?: string;
+    tags?: string[];
+    dependencies?: string[];
+    targetTableId?: string;
+  }): Promise<number> {
+    // Field mapping: 8=Name, 13=Code, 14=Description, 9=Version, 10=Tags, 15=Dependencies, 11=Target Table ID, 12=Active
+    const recordData: Record<string, any> = {
+      8: { value: params.name },
+      13: { value: params.code },
+    };
+    
+    if (params.description) recordData[14] = { value: params.description };
+    if (params.version) recordData[9] = { value: params.version };
+    if (params.tags) recordData[10] = { value: params.tags.join(', ') };
+    if (params.dependencies) recordData[15] = { value: params.dependencies.join('\n') };
+    if (params.targetTableId) recordData[11] = { value: params.targetTableId };
+    recordData[12] = { value: true }; // Active = true by default
+    
+    const response = await this.axios.post('/records', {
+      to: params.tableId,
+      data: [recordData]
+    });
+    
+    return response.data.metadata.createdRecordIds[0];
+  }
+
+  async updateCodepage(params: {
+    tableId: string;
+    recordId: number;
+    code?: string;
+    description?: string;
+    version?: string;
+    active?: boolean;
+  }): Promise<void> {
+    const fields: Record<string, any> = {};
+    
+    if (params.code !== undefined) fields[7] = { value: params.code };
+    if (params.description !== undefined) fields[8] = { value: params.description };
+    if (params.version !== undefined) fields[9] = { value: params.version };
+    if (params.active !== undefined) fields[13] = { value: params.active };
+    
+    await this.updateRecord(params.tableId, params.recordId, fields);
+  }
+
+  async searchCodepages(params: {
+    tableId: string;
+    searchTerm?: string;
+    tags?: string[];
+    targetTableId?: string;
+    activeOnly?: boolean;
+  }): Promise<any[]> {
+    const conditions: string[] = [];
+    
+    if (params.searchTerm) {
+      // Search in name (field 6) or description (field 8)
+      conditions.push(`({6.CT.'${params.searchTerm}'}OR{8.CT.'${params.searchTerm}'})`);
+    }
+    
+    if (params.tags && params.tags.length > 0) {
+      const tagConditions = params.tags.map(tag => `{10.CT.'${tag}'}`).join('OR');
+      conditions.push(`(${tagConditions})`);
+    }
+    
+    if (params.targetTableId) {
+      conditions.push(`{12.EX.'${params.targetTableId}'}`);
+    }
+    
+    if (params.activeOnly !== false) {
+      conditions.push(`{13.EX.'1'}`); // Active = true
+    }
+    
+    const where = conditions.length > 0 ? conditions.join('AND') : '';
+    
+    return this.getRecords(params.tableId, { where });
+  }
+
+  async cloneCodepage(params: {
+    tableId: string;
+    sourceRecordId: number;
+    newName: string;
+    modifications?: Record<string, any>;
+  }): Promise<number> {
+    // Get source codepage
+    const sourceCodepage = await this.getRecord(params.tableId, params.sourceRecordId);
+    
+    // Create new record with cloned data
+    const recordData: Record<string, any> = {
+      6: { value: params.newName },
+      7: { value: sourceCodepage['7']?.value }, // Code
+      8: { value: sourceCodepage['8']?.value || `Cloned from ${sourceCodepage['6']?.value}` }, // Description
+      9: { value: sourceCodepage['9']?.value || '1.0.0' }, // Version
+      10: { value: sourceCodepage['10']?.value }, // Tags
+      11: { value: sourceCodepage['11']?.value }, // Dependencies
+      12: { value: sourceCodepage['12']?.value }, // Target Table
+      13: { value: true } // Active
+    };
+    
+    // Apply modifications
+    if (params.modifications) {
+      for (const [fieldId, value] of Object.entries(params.modifications)) {
+        recordData[fieldId] = { value };
+      }
+    }
+    
+    const response = await this.axios.post('/records', {
+      to: params.tableId,
+      data: [recordData]
+    });
+    
+    return response.data.metadata.createdRecordIds[0];
+  }
+
+  async validateCodepage(params: {
+    code: string;
+    checkSyntax?: boolean;
+    checkAPIs?: boolean;
+    checkSecurity?: boolean;
+  }): Promise<{
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    securityIssues: string[];
+  }> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const securityIssues: string[] = [];
+    
+    // Check syntax (basic HTML/JS validation)
+    if (params.checkSyntax !== false) {
+      // Check for unclosed tags
+      const openTags = params.code.match(/<[^/][^>]*>/g) || [];
+      const closeTags = params.code.match(/<\/[^>]*>/g) || [];
+      
+      if (openTags.length !== closeTags.length) {
+        errors.push('Possible unclosed HTML tags detected');
+      }
+      
+      // Check for basic JavaScript syntax errors
+      if (params.code.includes('function') && !params.code.includes('}')) {
+        errors.push('Possible unclosed JavaScript function');
+      }
+    }
+    
+    // Check API usage
+    if (params.checkAPIs !== false) {
+      const hasQdbApi = params.code.includes('qdb.api');
+      const hasQBApi = params.code.includes('QB.api');
+      const hasSessionClient = params.code.includes('window.qbClient');
+      
+      if (!hasQdbApi && !hasQBApi && !hasSessionClient) {
+        warnings.push('No QuickBase API detected. Consider using qdb.api for best compatibility.');
+      }
+      
+      if (hasQBApi && !hasQdbApi) {
+        warnings.push('Consider using qdb.api instead of QB.api for better CORS handling.');
+      }
+      
+      if (hasSessionClient && !hasQdbApi) {
+        warnings.push('Session client may have CORS issues. Consider using qdb.api as primary.');
+      }
+    }
+    
+    // Check security
+    if (params.checkSecurity !== false) {
+      // Check for eval usage
+      if (params.code.includes('eval(')) {
+        securityIssues.push('Usage of eval() detected - potential security risk');
+      }
+      
+      // Check for innerHTML without sanitization
+      if (params.code.includes('.innerHTML') && !params.code.includes('sanitize')) {
+        warnings.push('innerHTML usage detected - ensure user input is sanitized');
+      }
+      
+      // Check for hardcoded credentials
+      const credentialPatterns = [
+        /password\s*=\s*['"][^'"]+['"]/i,
+        /api[_-]?key\s*=\s*['"][^'"]+['"]/i,
+        /token\s*=\s*['"][^'"]+['"]/i
+      ];
+      
+      for (const pattern of credentialPatterns) {
+        if (pattern.test(params.code)) {
+          securityIssues.push('Possible hardcoded credentials detected');
+          break;
+        }
+      }
+      
+      // Check for SQL injection patterns (in query strings)
+      if (params.code.includes('where') && params.code.includes('${') && !params.code.includes('sanitize')) {
+        warnings.push('Dynamic query construction detected - ensure proper input sanitization');
+      }
+    }
+    
+    return {
+      isValid: errors.length === 0 && securityIssues.length === 0,
+      errors,
+      warnings,
+      securityIssues
+    };
+  }
+
+  async exportCodepage(params: {
+    tableId: string;
+    recordId: number;
+    format: 'html' | 'json' | 'markdown';
+  }): Promise<string> {
+    const codepage = await this.getRecord(params.tableId, params.recordId);
+    
+    if (params.format === 'html') {
+      return codepage['7']?.value || '';
+    }
+    
+    if (params.format === 'json') {
+      return JSON.stringify({
+        name: codepage['6']?.value,
+        code: codepage['7']?.value,
+        description: codepage['8']?.value,
+        version: codepage['9']?.value,
+        tags: codepage['10']?.value?.split(',').map((t: string) => t.trim()),
+        dependencies: codepage['11']?.value?.split('\n').filter((d: string) => d.trim()),
+        targetTableId: codepage['12']?.value,
+        active: codepage['13']?.value
+      }, null, 2);
+    }
+    
+    if (params.format === 'markdown') {
+      const name = codepage['6']?.value || 'Untitled';
+      const version = codepage['9']?.value || '1.0.0';
+      const description = codepage['8']?.value || '';
+      const code = codepage['7']?.value || '';
+      
+      return `# ${name} (v${version})
+
+## Description
+${description}
+
+## Code
+\`\`\`html
+${code}
+\`\`\`
+
+## Metadata
+- **Version:** ${version}
+- **Tags:** ${codepage['10']?.value || 'None'}
+- **Target Table:** ${codepage['12']?.value || 'None'}
+- **Active:** ${codepage['13']?.value ? 'Yes' : 'No'}
+`;
+    }
+    
+    return '';
+  }
+
+  async importCodepage(params: {
+    tableId: string;
+    source: string;
+    format: 'html' | 'json' | 'auto';
+    overwrite?: boolean;
+  }): Promise<number> {
+    let codepageData: any = {};
+    
+    // Auto-detect format
+    let detectedFormat = params.format;
+    if (params.format === 'auto') {
+      if (params.source.trim().startsWith('{')) {
+        detectedFormat = 'json';
+      } else if (params.source.trim().startsWith('<!DOCTYPE') || params.source.trim().startsWith('<html')) {
+        detectedFormat = 'html';
+      } else {
+        throw new Error('Unable to auto-detect format. Please specify format explicitly.');
+      }
+    }
+    
+    // Parse based on format
+    if (detectedFormat === 'json') {
+      codepageData = JSON.parse(params.source);
+    } else if (detectedFormat === 'html') {
+      // Extract name from title tag if available
+      const titleMatch = params.source.match(/<title>(.*?)<\/title>/i);
+      codepageData = {
+        name: titleMatch ? titleMatch[1] : 'Imported Codepage',
+        code: params.source,
+        description: 'Imported from HTML',
+        version: '1.0.0'
+      };
+    }
+    
+    // Check if codepage with this name exists (if overwrite is false)
+    if (!params.overwrite) {
+      const existing = await this.searchCodepages({
+        tableId: params.tableId,
+        searchTerm: codepageData.name
+      });
+      
+      if (existing.length > 0) {
+        throw new Error(`Codepage with name "${codepageData.name}" already exists. Use overwrite=true to replace.`);
+      }
+    }
+    
+    // Create the codepage
+    return this.deployCodepage({
+      tableId: params.tableId,
+      name: codepageData.name,
+      code: codepageData.code,
+      description: codepageData.description,
+      version: codepageData.version,
+      tags: codepageData.tags,
+      dependencies: codepageData.dependencies,
+      targetTableId: codepageData.targetTableId
+    });
+  }
+
+  async saveCodepageVersion(params: {
+    tableId: string;
+    codepageRecordId: number;
+    version: string;
+    code: string;
+    changeLog?: string;
+  }): Promise<number> {
+    const recordData: Record<string, any> = {
+      6: { value: params.codepageRecordId }, // Codepage Record ID
+      7: { value: params.version }, // Version
+      8: { value: params.code }, // Code Snapshot
+    };
+    
+    if (params.changeLog) {
+      recordData[9] = { value: params.changeLog }; // Change Log
+    }
+    
+    const response = await this.axios.post('/records', {
+      to: params.tableId,
+      data: [recordData]
+    });
+    
+    return response.data.metadata.createdRecordIds[0];
+  }
+
+  async getCodepageVersions(params: {
+    tableId: string;
+    codepageRecordId: number;
+    limit?: number;
+  }): Promise<any[]> {
+    const where = `{6.EX.'${params.codepageRecordId}'}`;
+    const options: any = {
+      where,
+      sortBy: [{ fieldId: 10, order: 'DESC' }] // Sort by Created Date descending
+    };
+    
+    if (params.limit) {
+      options.top = params.limit;
+    }
+    
+    return this.getRecords(params.tableId, options);
+  }
+
+  async rollbackCodepage(params: {
+    tableId: string;
+    codepageRecordId: number;
+    versionRecordId: number;
+  }): Promise<void> {
+    // Get the version record
+    const versionRecord = await this.getRecord(params.tableId, params.versionRecordId);
+    
+    if (!versionRecord) {
+      throw new Error(`Version record ${params.versionRecordId} not found`);
+    }
+    
+    // Get the code and version from the version record
+    const code = versionRecord['8']?.value; // Code Snapshot
+    const version = versionRecord['7']?.value; // Version
+    
+    if (!code) {
+      throw new Error('Version record does not contain code snapshot');
+    }
+    
+    // Update the main codepage with the old version's code
+    await this.updateCodepage({
+      tableId: params.tableId, // This should be the main codepage table
+      recordId: params.codepageRecordId,
+      code,
+      version: `${version}-rollback`
+    });
   }
 
   async getCodepage(tableId: string, recordId: number): Promise<any> {

@@ -1,7 +1,7 @@
 {
   "name": "quickbase-mcp-server",
-  "version": "1.0.0",
-  "description": "A comprehensive Model Context Protocol (MCP) server for QuickBase integration with maximum flexibility. Supports all QuickBase operations including tables, fields, records, relationships, and reports.",
+  "version": "1.1.0",
+  "description": "A comprehensive Model Context Protocol (MCP) server for QuickBase integration with maximum flexibility. Supports all QuickBase operations including tables, fields, records, relationships, reports, and codepage management.",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "dev": "tsc --skipLibCheck --watch & node --watch dist/index.js",
     "test": "node test-basic-api.js",
+    "test:codepages": "node test-codepage-tools.js",
     "test:jest": "jest",
     "setup": "node setup.js",
     "prepublishOnly": "npm run build && npm run test",
