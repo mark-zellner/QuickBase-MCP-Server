@@ -1,4 +1,5 @@
 import axios from 'axios';
+import https from 'node:https';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -29,13 +30,14 @@ async function testDirectAPI() {
     'Content-Type': 'application/json'
   };
 
+  // Create an axios instance configured to accept self-signed certificates in dev/test
+  const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+  const axiosInstance = axios.create({ baseURL, headers, httpsAgent });
+
   try {
     // Test 1: Get table schema
     console.log('🔧 Test 1: Getting table schema...');
-    const schemaResponse = await axios.get(
-      `${baseURL}/tables/${config.leadsTableId}?appId=${config.appId}`,
-      { headers }
-    );
+    const schemaResponse = await axiosInstance.get(`/tables/${config.leadsTableId}?appId=${config.appId}`);
     console.log('✅ Table schema retrieved successfully');
     console.log(`   Table Name: ${schemaResponse.data.name}`);
     console.log(`   Table ID: ${schemaResponse.data.id}`);
@@ -43,39 +45,33 @@ async function testDirectAPI() {
 
     // Test 2: Get table fields
     console.log('🔧 Test 2: Getting table fields...');
-    const fieldsResponse = await axios.get(
-      `${baseURL}/fields?tableId=${config.leadsTableId}&appId=${config.appId}`,
-      { headers }
-    );
+    const fieldsResponse = await axiosInstance.get(`/fields?tableId=${config.leadsTableId}&appId=${config.appId}`);
     console.log(`✅ Found ${fieldsResponse.data.length} fields`);
     
     // Show first 5 fields
-    fieldsResponse.data.slice(0, 5).forEach(field => {
+    for (const field of fieldsResponse.data.slice(0, 5)) {
       console.log(`   - ${field.label} (ID: ${field.id}, Type: ${field.fieldType})`);
-    });
+    }
     console.log('   ...\n');
 
     // Test 3: Query some records
     console.log('🔧 Test 3: Querying records...');
-    const recordsResponse = await axios.post(
-      `${baseURL}/records/query`,
-      {
-        from: config.leadsTableId,
-        select: [3, 6, 18], // Record ID, Lead Name, Customer Name
-        options: {
-          top: 5
-        }
-      },
-      { headers }
-    );
+    const recordsResponse = await axiosInstance.post('/records/query', {
+      from: config.leadsTableId,
+      select: [3, 6, 18], // Record ID, Lead Name, Customer Name
+      options: {
+        top: 5
+      }
+    });
     
     console.log(`✅ Found ${recordsResponse.data.data.length} records`);
-    recordsResponse.data.data.forEach((record, index) => {
+    let i = 0;
+    for (const record of recordsResponse.data.data) {
       const recordId = record['3']?.value || 'N/A';
       const leadName = record['6']?.value || 'N/A';
       const customerName = record['18']?.value || 'N/A';
-      console.log(`   ${index + 1}. Record ${recordId}: ${leadName} (${customerName})`);
-    });
+      console.log(`   ${++i}. Record ${recordId}: ${leadName} (${customerName})`);
+    }
 
     console.log('\n🎉 All tests passed! QuickBase API access is working correctly.');
     console.log('\n📋 Summary:');
@@ -102,4 +98,4 @@ async function testDirectAPI() {
   }
 }
 
-testDirectAPI().catch(console.error);
+await testDirectAPI();

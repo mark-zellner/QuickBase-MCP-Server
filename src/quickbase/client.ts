@@ -1,10 +1,10 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import https from 'https';
+import axios, { AxiosInstance } from 'axios';
+import https from 'node:https';
 import { QuickBaseConfig, QuickBaseField, QuickBaseTable, QuickBaseRecord, QueryOptions } from '../types/quickbase.js';
 
 export class QuickBaseClient {
-  private axios: AxiosInstance;
-  private config: QuickBaseConfig;
+  private readonly axios: AxiosInstance;
+  private readonly config: QuickBaseConfig;
 
   constructor(config: QuickBaseConfig) {
     this.config = config;
@@ -198,18 +198,18 @@ export class QuickBaseClient {
     const metadata = response.data.metadata;
     
     // Check if record was created
-    if (metadata && metadata.createdRecordIds && metadata.createdRecordIds.length > 0) {
+    if (metadata?.createdRecordIds?.length) {
       return metadata.createdRecordIds[0]; // Return the created record ID
     }
     
     // Alternative: try to get from data array (older API format)
     const recordData = response.data.data?.[0];
-    if (recordData && recordData['3']) {
+    if (recordData?.['3']) {
       return recordData['3'].value; // Record ID is always field 3
     }
     
     // If we have line errors, throw them
-    if (metadata && metadata.lineErrors) {
+    if (metadata?.lineErrors) {
       const errors = Object.values(metadata.lineErrors).flat();
       throw new Error('Failed to create record: ' + errors.join(', '));
     }
@@ -435,7 +435,7 @@ export class QuickBaseClient {
           const relatedFields = fields.filter(field => 
             field.fieldType === 'reference' || 
             field.fieldType === 'lookup' ||
-            (field.properties && field.properties.lookupReference)
+            (field.properties?.lookupReference)
           );
           
           relationshipDetail.relatedFields = relatedFields;
@@ -540,9 +540,76 @@ export class QuickBaseClient {
     try {
       await this.getAppInfo();
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const body = error?.response?.data;
+      console.error('[QuickBaseClient.testConnection] Failed', {
+        status,
+        message: error?.message,
+        body,
+        realm: this.config.realm,
+        appId: this.config.appId,
+        hasToken: !!this.config.userToken && this.config.userToken.length > 5
+      });
       return false;
     }
+  }
+
+  // Returns basic info about the current user/token
+  async whoAmI(): Promise<any> {
+    try {
+      const resp = await this.axios.get('/users/me');
+      return resp.data;
+    } catch (error: any) {
+      throw new Error('whoAmI failed: ' + (error?.response?.status || '') + ' ' + (error?.response?.data?.message || error.message));
+    }
+  }
+
+  // Performs multi-endpoint auth diagnosis and returns structured result
+  async diagnoseAuth(extra?: { codepageTableId?: string; pricingTableId?: string }): Promise<any> {
+    const report: any = {
+      timestamp: new Date().toISOString(),
+      realm: this.config.realm,
+      appId: this.config.appId,
+      tokenPresent: !!this.config.userToken,
+      endpoints: {}
+    };
+
+    // Helper to call endpoint and record status
+    const attempt = async (key: string, fn: () => Promise<any>) => {
+      try {
+        const data = await fn();
+        report.endpoints[key] = { ok: true, sampleKeys: Object.keys(data).slice(0,5) };
+      } catch (err: any) {
+        report.endpoints[key] = {
+          ok: false,
+            status: err?.response?.status,
+            message: err?.response?.data?.message || err.message
+        };
+      }
+    };
+
+    await attempt('whoAmI', () => this.whoAmI());
+    await attempt('getAppInfo', () => this.getAppInfo());
+    await attempt('getAppTables', () => this.getAppTables());
+    if (extra?.codepageTableId) {
+      await attempt('codepageTableFields', () => this.getTableFields(extra.codepageTableId!));
+    }
+    if (extra?.pricingTableId) {
+      await attempt('pricingTableFields', () => this.getTableFields(extra.pricingTableId!));
+    }
+
+    // Summarize primary cause guess
+    const all401 = Object.values(report.endpoints).every((e: any) => e.status === 401 || (!e.ok && e.status === 401));
+    if (all401) {
+      report.inference = 'Token invalid for realm or revoked (all endpoints 401). Verify QB-USER-TOKEN and realm match; ensure app included in token scope.';
+    } else if (!report.endpoints.whoAmI?.ok && report.endpoints.getAppInfo?.ok) {
+      report.inference = 'User info blocked but app accessible; possible role restrictions.';
+    } else {
+      report.inference = 'Mixed results; inspect individual endpoint statuses.';
+    }
+
+    return report;
   }
 
   async searchRecords(tableId: string, searchTerm: string, fieldIds?: number[]): Promise<any[]> {

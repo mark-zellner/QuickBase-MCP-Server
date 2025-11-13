@@ -5,9 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2025-10-29
+## [1.1.0] - 2025-11-13
 
-### Added - Codepage Infrastructure & Testing ✅
+### Added - Enhanced Diagnostics & Production Features ✅
+
+#### Authentication & Diagnostics
+- **`whoAmI()` Method** - Returns current user info from QB API (`/users/me`)
+- **`diagnoseAuth()` Method** - Multi-endpoint authentication testing with structured reports
+- **Enhanced Error Messages** - Status codes, detailed error data, and remediation hints
+- **Connection Logging** - Comprehensive debug output for troubleshooting auth issues
+
+#### Code Quality & Security
+- **TypeScript Strict Mode** - Added `readonly` modifiers to immutable properties
+- **Modern Node.js Imports** - Updated to `node:https` syntax for built-in modules
+- **HTTPS Agent Configuration** - Proper handling of self-signed certificates in dev/test
+- **Optional Chaining** - Cleaner null checking throughout client code
+
+#### Production Demo
+- **MyDealership v2.0** - Complete working pricing calculator
+- **Session Authentication** - Production-ready implementation using `qdb.api`
+- **API Priority Strategy** - Resilient fallback chain: qdb.api → QB.api → session client
+- **Comprehensive Error Handling** - User-friendly messages with detailed console logging
+
+#### Testing Improvements
+- **test-basic-api.js** - Enhanced with HTTPS agent and cleaner async/await patterns
+- **Axios Instances** - Centralized HTTP client configuration for consistency
+- **Better Test Output** - Structured results with clear pass/fail indicators
+
+### Changed
+- **Client Constructor** - Now uses `readonly` for config and axios instance
+- **Error Handling** - All catch blocks now properly type errors as `any` for TypeScript
+- **Import Statements** - Modernized to use Node.js native module imports
+- **Response Parsing** - Simplified with optional chaining for safer property access
+
+### Fixed
+- **401 Diagnosis** - New `diagnoseAuth()` provides detailed insight into auth failures
+- **Type Safety** - Fixed TypeScript errors with proper error typing
+- **Async/Await** - Corrected top-level await usage in test files
+
+### Added - Codepage Infrastructure & Testing (v1.1.0 Initial)
 
 #### Infrastructure
 - **Codepages Table Created** - New QuickBase table (bvi2ms4e9) for storing codepages

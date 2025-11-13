@@ -1,20 +1,28 @@
 # QuickBase MCP Server
 
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](CHANGELOG.md)
+[![MCP Tools](https://img.shields.io/badge/MCP%20Tools-41-green.svg)](#mcp-tools)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A comprehensive QuickBase development toolkit consisting of:
 
-1. **MCP Server** - Model Context Protocol server for AI-assisted QuickBase operations
+1. **MCP Server** - Model Context Protocol server with 41 tools for AI-assisted QuickBase operations
 2. **Codepage Development Platform** - Web-based IDE for creating and deploying QuickBase codepages
+3. **Session Authentication Library** - Secure, token-free QuickBase integration
 
-## 🎉 What's New - Enhanced Codepage Management
+## 🎉 What's New in v1.1.0
 
-### 11 New MCP Tools for Complete Codepage Lifecycle Management
+### ✨ Enhanced MCP Server (41 Tools Available!)
+- **🔍 Auth Diagnostics**: New `diagnoseAuth()` and `whoAmI()` methods for troubleshooting
+- **🔒 Improved Security**: Enhanced HTTPS handling with proper certificate validation
+- **📊 Better Error Handling**: Detailed error messages with status codes and remediation hints
+- **⚡ Code Quality**: TypeScript strict mode improvements, modern Node.js imports
 
-The MCP server now includes comprehensive codepage deployment, versioning, and quality assurance tools:
-
-- **📦 Deployment:** `deploy_codepage`, `update_codepage`, `import_codepage`
-- **🔍 Discovery:** `search_codepages`, `validate_codepage`, `export_codepage`
-- **👥 Collaboration:** `clone_codepage` with modifications
-- **📚 Version Control:** `save_codepage_version`, `get_codepage_versions`, `rollback_codepage`
+### 📦 Complete Codepage Lifecycle Management (11 Tools)
+- **Deployment:** `deploy_codepage`, `update_codepage`, `import_codepage`
+- **Discovery:** `search_codepages`, `validate_codepage`, `export_codepage`
+- **Collaboration:** `clone_codepage` with modifications
+- **Version Control:** `save_codepage_version`, `get_codepage_versions`, `rollback_codepage`
 
 **Key Features:**
 - ✅ Automated syntax and security validation
@@ -23,7 +31,13 @@ The MCP server now includes comprehensive codepage deployment, versioning, and q
 - ✅ Clone templates for rapid development
 - ✅ Export to HTML/JSON/Markdown
 
-[📖 **Complete Tool Guide**](CODEPAGE_TOOLS_GUIDE.md) | [🚀 **New Features Summary**](NEW_FEATURES_SUMMARY.md)
+### 🎯 Working MyDealership Demo
+- ✅ Production-ready pricing calculator
+- ✅ Uses session authentication (no tokens in code)
+- ✅ Comprehensive QuickBase API integration examples
+- ✅ Complete error handling and user feedback
+
+[📖 **Complete Tool Guide**](CODEPAGE_TOOLS_GUIDE.md) | [🚀 **New Features Summary**](NEW_FEATURES_SUMMARY.md) | [📝 **Changelog**](CHANGELOG.md)
 
 ---
 
