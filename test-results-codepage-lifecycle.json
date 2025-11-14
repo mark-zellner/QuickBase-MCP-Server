@@ -1,0 +1,87 @@
+{
+  "timestamp": "2025-11-14T00:54:09.045Z",
+  "config": {
+    "codepageTableId": "bvi2ms4e9",
+    "versionsTableId": "bvi2ms4ea"
+  },
+  "results": {
+    "passed": 11,
+    "failed": 3,
+    "tests": [
+      {
+        "name": "Deploy Codepage",
+        "passed": true,
+        "details": "Record ID: 7"
+      },
+      {
+        "name": "Get Codepage",
+        "passed": true,
+        "details": "Has code: true, Has name: true"
+      },
+      {
+        "name": "List Codepages",
+        "passed": true,
+        "details": "Found 7 codepages"
+      },
+      {
+        "name": "Search Codepages",
+        "passed": true,
+        "details": "Found 1 test codepages"
+      },
+      {
+        "name": "Update Codepage",
+        "passed": true,
+        "details": "Version: 1.0.1"
+      },
+      {
+        "name": "Validate Codepage",
+        "passed": false,
+        "details": "Errors: 1, Warnings: 0, Security: 0"
+      },
+      {
+        "name": "Clone Codepage",
+        "passed": true,
+        "details": "Cloned to Record ID: 8"
+      },
+      {
+        "name": "Export Codepage (JSON)",
+        "passed": true,
+        "details": "Has code: true"
+      },
+      {
+        "name": "Export Codepage (HTML)",
+        "passed": true,
+        "details": "HTML format valid"
+      },
+      {
+        "name": "Export Codepage (Markdown)",
+        "passed": true,
+        "details": "Markdown format valid"
+      },
+      {
+        "name": "Save Codepage Version",
+        "passed": false,
+        "details": "Request failed with status code 401"
+      },
+      {
+        "name": "Get Codepage Versions",
+        "passed": false,
+        "details": "Request failed with status code 401"
+      },
+      {
+        "name": "Import Codepage",
+        "passed": true,
+        "details": "Imported Record ID: 9"
+      },
+      {
+        "name": "Execute Codepage",
+        "passed": true,
+        "details": "Execution metadata returned"
+      }
+    ]
+  },
+  "recordsCreated": {
+    "deployedRecordId": 7,
+    "clonedRecordId": 8
+  }
+}

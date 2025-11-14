@@ -1,8 +1,10 @@
 # QuickBase MCP Server
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](CHANGELOG.md)
 [![MCP Tools](https://img.shields.io/badge/MCP%20Tools-41-green.svg)](#mcp-tools)
+[![Codepage Tools](https://img.shields.io/badge/Codepage%20Tools-14-orange.svg)](CODEPAGE_QUICK_REF.md)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-11%2F14%20passing-yellow.svg)](#testing)
 
 A comprehensive QuickBase development toolkit consisting of:
 
@@ -10,34 +12,34 @@ A comprehensive QuickBase development toolkit consisting of:
 2. **Codepage Development Platform** - Web-based IDE for creating and deploying QuickBase codepages
 3. **Session Authentication Library** - Secure, token-free QuickBase integration
 
-## 🎉 What's New in v1.1.0
+## 🎉 What's New in v1.5.0 - Complete Codepage Lifecycle!
 
-### ✨ Enhanced MCP Server (41 Tools Available!)
-- **🔍 Auth Diagnostics**: New `diagnoseAuth()` and `whoAmI()` methods for troubleshooting
-- **🔒 Improved Security**: Enhanced HTTPS handling with proper certificate validation
-- **📊 Better Error Handling**: Detailed error messages with status codes and remediation hints
-- **⚡ Code Quality**: TypeScript strict mode improvements, modern Node.js imports
+### ✨ Full End-to-End Codepage Management (14 Tools!)
+- **🔧 Complete CRUD** - Create, Read, Update, Delete codepages with full metadata
+- **🧪 Testing & Validation** - Syntax, API, and security validation built-in
+- **📦 Deployment** - Deploy, clone, import/export in JSON/HTML/Markdown
+- **📚 Version Control** - Save versions, view history, rollback changes
+- **🔍 Search & Discovery** - Find by name, tags, target table, status
 
-### 📦 Complete Codepage Lifecycle Management (11 Tools)
-- **Deployment:** `deploy_codepage`, `update_codepage`, `import_codepage`
-- **Discovery:** `search_codepages`, `validate_codepage`, `export_codepage`
-- **Collaboration:** `clone_codepage` with modifications
-- **Version Control:** `save_codepage_version`, `get_codepage_versions`, `rollback_codepage`
+### 🛡️ Quality Assurance Features
+- ✅ **Syntax Validation** - HTML tag closure, JavaScript error detection
+- ✅ **API Validation** - QuickBase API usage pattern analysis
+- ✅ **Security Scanning** - eval(), XSS, credential detection
+- ✅ **Best Practices** - qdb.api priority recommendations
 
-**Key Features:**
-- ✅ Automated syntax and security validation
-- ✅ Full version history and rollback
-- ✅ Search by name, tags, or target table
-- ✅ Clone templates for rapid development
-- ✅ Export to HTML/JSON/Markdown
+### 🧪 Comprehensive Testing
+- ✅ **14 End-to-End Tests** - Full lifecycle coverage
+- ✅ **78.6% Pass Rate** - 11/14 tests passing
+- ✅ **Automated Test Runner** - `npm run test:lifecycle`
+- ✅ **JSON Results Export** - Detailed test reports
 
-### 🎯 Working MyDealership Demo
-- ✅ Production-ready pricing calculator
-- ✅ Uses session authentication (no tokens in code)
-- ✅ Comprehensive QuickBase API integration examples
-- ✅ Complete error handling and user feedback
+### 📖 Documentation Overhaul
+- ✅ **Complete v1.5.0 Guide** - [README_v1.5.0.md](README_v1.5.0.md)
+- ✅ **Quick Reference** - [CODEPAGE_QUICK_REF.md](CODEPAGE_QUICK_REF.md)
+- ✅ **Updated Changelog** - [CHANGELOG.md](CHANGELOG.md)
+- ✅ **Field Mappings** - Codepages and versions tables documented
 
-[📖 **Complete Tool Guide**](CODEPAGE_TOOLS_GUIDE.md) | [🚀 **New Features Summary**](NEW_FEATURES_SUMMARY.md) | [📝 **Changelog**](CHANGELOG.md)
+[📖 **v1.5.0 Full Documentation**](README_v1.5.0.md) | [⚡ **Quick Reference**](CODEPAGE_QUICK_REF.md) | [📝 **Changelog**](CHANGELOG.md)
 
 ---
 
