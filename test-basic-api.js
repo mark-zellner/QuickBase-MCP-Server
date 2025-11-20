@@ -11,14 +11,14 @@ async function testDirectAPI() {
     realm: process.env.QB_REALM,
     userToken: process.env.QB_USER_TOKEN,
     appId: process.env.QB_APP_ID,
-    leadsTableId: 'bu65pc8px' // From your mapping file
+    tableId: process.env.PRICING_TABLE_ID || process.env.QB_TABLE_ID || 'bvhuaz8wz'
   };
 
   console.log('Configuration:');
   console.log(`  Realm: ${config.realm}`);
   console.log(`  App ID: ${config.appId}`);
   console.log(`  Token: ${config.userToken ? '***' + config.userToken.slice(-4) : 'Missing'}`);
-  console.log(`  Leads Table ID: ${config.leadsTableId}\n`);
+  console.log(`  Table ID: ${config.tableId}\n`);
 
   const baseURL = `https://api.quickbase.com/v1`;
   console.log(`Base URL: ${baseURL}\n`);
@@ -37,7 +37,7 @@ async function testDirectAPI() {
   try {
     // Test 1: Get table schema
     console.log('🔧 Test 1: Getting table schema...');
-    const schemaResponse = await axiosInstance.get(`/tables/${config.leadsTableId}?appId=${config.appId}`);
+    const schemaResponse = await axiosInstance.get(`/tables/${config.tableId}?appId=${config.appId}`);
     console.log('✅ Table schema retrieved successfully');
     console.log(`   Table Name: ${schemaResponse.data.name}`);
     console.log(`   Table ID: ${schemaResponse.data.id}`);
@@ -45,7 +45,7 @@ async function testDirectAPI() {
 
     // Test 2: Get table fields
     console.log('🔧 Test 2: Getting table fields...');
-    const fieldsResponse = await axiosInstance.get(`/fields?tableId=${config.leadsTableId}&appId=${config.appId}`);
+    const fieldsResponse = await axiosInstance.get(`/fields?tableId=${config.tableId}&appId=${config.appId}`);
     console.log(`✅ Found ${fieldsResponse.data.length} fields`);
     
     // Show first 5 fields
@@ -57,7 +57,7 @@ async function testDirectAPI() {
     // Test 3: Query some records
     console.log('🔧 Test 3: Querying records...');
     const recordsResponse = await axiosInstance.post('/records/query', {
-      from: config.leadsTableId,
+      from: config.tableId,
       select: [3, 6, 18], // Record ID, Lead Name, Customer Name
       options: {
         top: 5
