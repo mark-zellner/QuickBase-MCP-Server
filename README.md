@@ -43,10 +43,16 @@ This repository provides three powerful tools for QuickBase development:
 ### 1. MCP Server
 A Model Context Protocol server that provides maximum flexibility for QuickBase operations through AI assistants like Claude. Create tables, add fields, modify relationships, perform CRUD operations, **and now manage codepages with full version control**.
 
+**Key Resources:**
+- [📖 Quick Start](QUICK_START.md)
+- [🔧 Setup Guide](docs/deployment/quickbase_cli_setup.md)
+- [📚 Directory Structure](STRUCTURE.md)
+- [🎯 Feature Request CLI](https://github.com/QuickBase/quickbase-cli/issues/45)
+
 ### 2. QuickBase Codepage Hero
 A lightweight JavaScript library for building interactive QuickBase codepages. Deploy as a single codepage and use across all your QuickBase applications. **Now with v2.2 featuring pure session authentication - NO TOKENS REQUIRED!** ⭐
 
-[📖 **Codepage Guide**](CLAUDE.md) | [🚀 **Deployment**](DEPLOYMENT.md) | [💡 **Example**](MyDealership.html) | [🔒 **Secure Version**](quickbase_codepage_hero_session.js)
+[📖 **Codepage Guide**](CLAUDE.md) | [🚀 **Deployment**](docs/deployment/DEPLOYMENT.md) | [💡 **Example**](MyDealership.html) | [🔒 **Secure Version**](examples/quickbase_codepage_hero_session.js)
 
 ### 3. Codepage Development Platform
 A complete web-based development environment for creating, testing, and deploying QuickBase codepages with minimal technical expertise. Built for dealership staff and business users to develop interactive applications like pricing calculators.
