@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import https from 'node:https';
+import FormData from 'form-data';
 import { QuickBaseConfig, QuickBaseField, QuickBaseTable, QuickBaseRecord, QueryOptions } from '../types/quickbase.js';
 
 export class QuickBaseClient {
@@ -623,16 +624,184 @@ export class QuickBaseClient {
 
   // ========== BULK OPERATIONS ==========
 
-  async upsertRecords(tableId: string, records: Array<{ keyField: number; keyValue: any; data: Record<string, any> }>): Promise<any> {
-    // QuickBase upsert based on a key field
-    return await this.axios.post('/records', {
+  async upsertRecords(tableId: string, records: Array<{ keyField: number; keyValue: any; data: Record<string, any> }>): Promise<{
+    created: number[];
+    updated: number[];
+    unchanged: number[];
+    totalProcessed: number;
+  }> {
+    if (!records || records.length === 0) {
+      throw new Error('No records provided for upsert');
+    }
+
+    const keyFieldId = records[0].keyField;
+    
+    // QuickBase upsert using mergeFieldId
+    const response = await this.axios.post('/records', {
       to: tableId,
       data: records.map(({ keyField, keyValue, data }) => ({
         [keyField]: { value: keyValue },
         ...data
       })),
-      mergeFieldId: records[0]?.keyField
+      mergeFieldId: keyFieldId,
+      fieldsToReturn: [3] // Return Record ID
     });
+
+    const metadata = response.data.metadata;
+    
+    return {
+      created: metadata.createdRecordIds || [],
+      updated: metadata.updatedRecordIds || [],
+      unchanged: metadata.unchangedRecordIds || [],
+      totalProcessed: metadata.totalNumberOfRecordsProcessed || records.length
+    };
+  }
+
+  async bulkUpdateRecords(tableId: string, updates: Array<{ recordId: number; fields: Record<string, any> }>): Promise<{
+    updated: number[];
+    errors: Array<{ recordId: number; error: string }>;
+  }> {
+    if (!updates || updates.length === 0) {
+      throw new Error('No updates provided');
+    }
+
+    try {
+      const response = await this.axios.post('/records', {
+        to: tableId,
+        data: updates.map(({ recordId, fields }) => ({
+          '3': { value: recordId }, // Record ID field
+          ...fields
+        }))
+      });
+
+      const metadata = response.data.metadata;
+      const errors: Array<{ recordId: number; error: string }> = [];
+      
+      // Check for line errors
+      if (metadata.lineErrors) {
+        Object.entries(metadata.lineErrors).forEach(([line, errorArray]: [string, any]) => {
+          const lineIndex = parseInt(line);
+          const recordId = updates[lineIndex]?.recordId;
+          if (recordId) {
+            errors.push({
+              recordId,
+              error: Array.isArray(errorArray) ? errorArray.join(', ') : String(errorArray)
+            });
+          }
+        });
+      }
+
+      return {
+        updated: metadata.updatedRecordIds || [],
+        errors
+      };
+    } catch (error) {
+      throw new Error(`Bulk update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async bulkDeleteRecords(tableId: string, where: string): Promise<number> {
+    const response = await this.axios.delete('/records', {
+      data: {
+        from: tableId,
+        where
+      }
+    });
+    return response.data.numberDeleted || 0;
+  }
+
+  // ========== FILE ATTACHMENT METHODS ==========
+
+  async uploadFile(
+    tableId: string,
+    recordId: number,
+    fieldId: number,
+    fileName: string,
+    fileData: Buffer | string
+  ): Promise<{
+    versionNumber: number;
+    fileId?: number;
+    fileName: string;
+  }> {
+    const buffer = typeof fileData === 'string' ? Buffer.from(fileData, 'base64') : fileData;
+    const form = new FormData();
+    form.append('file', buffer, { filename: fileName });
+
+    const response = await this.axios.post(
+      `/files/${tableId}/${recordId}/${fieldId}`,
+      form,
+      { headers: form.getHeaders() }
+    );
+
+    return {
+      versionNumber: response.data.versionNumber,
+      fileId: response.data.fileId,
+      fileName: fileName
+    };
+  }
+
+  async downloadFile(
+    tableId: string,
+    recordId: number,
+    fieldId: number,
+    versionNumber?: number
+  ): Promise<{
+    fileName: string;
+    data: string; // Base64 encoded
+    size: number;
+  }> {
+    const url = versionNumber
+      ? `/files/${tableId}/${recordId}/${fieldId}/${versionNumber}`
+      : `/files/${tableId}/${recordId}/${fieldId}`;
+
+    const response = await this.axios.get(url, { responseType: 'arraybuffer' });
+    const disposition = response.headers['content-disposition'] as string | undefined;
+    const fileName = this.extractFileName(disposition) ?? fileNameFromField(fieldId);
+    const buffer = Buffer.from(response.data);
+
+    return {
+      fileName,
+      data: buffer.toString('base64'),
+      size: buffer.byteLength
+    };
+
+    function fileNameFromField(fId: number): string {
+      return `file-${tableId}-${recordId}-${fId}${versionNumber ? `-v${versionNumber}` : ''}`;
+    }
+  }
+
+  async deleteFile(tableId: string, recordId: number, fieldId: number, versionNumber: number): Promise<void> {
+    await this.axios.delete(`/files/${tableId}/${recordId}/${fieldId}/${versionNumber}`);
+  }
+
+  async listFiles(
+    tableId: string,
+    recordId: number,
+    fieldId: number
+  ): Promise<Array<{
+    versionNumber: number;
+    fileId?: number;
+    fileName: string;
+    size: number;
+    uploaded?: string;
+  }>> {
+    const response = await this.axios.get(`/files/${tableId}/${recordId}/${fieldId}`);
+    return response.data.versions?.map((version: any) => ({
+      versionNumber: version.versionNumber,
+      fileId: version.fileId,
+      fileName: version.fileName,
+      size: version.size,
+      uploaded: version.uploaded || version.uploadTime
+    })) || [];
+  }
+
+  private extractFileName(disposition?: string): string | undefined {
+    if (!disposition) {
+      return undefined;
+    }
+
+    const match = /filename="?([^";]+)"?/i.exec(disposition);
+    return match?.[1];
   }
 
   // ========== CODEPAGE METHODS ==========

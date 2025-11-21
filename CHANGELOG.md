@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-11-20
+
+### Added - File Attachments & Bulk Operations ⚡
+
+- **File Attachment Tools** – Added four MCP tools (`quickbase_upload_file`, `quickbase_download_file`, `quickbase_delete_file`, `quickbase_list_files`) plus corresponding client helpers for uploading via multipart form data, downloading binary payloads, deleting versions, and listing file metadata.
+- **Bulk Operation Tools** – Added three MCP tools (`quickbase_upsert_records`, `quickbase_bulk_update_records`, `quickbase_bulk_delete_records`) with improved QuickBase client helpers that surface operation stats, per-record errors, and query-driven deletions.
+- **Zod Schemas & Tool Metadata** – Added validation schemas and tool definitions so MCP clients can self-document the new capabilities.
+
+### Changed
+
+- **QuickBase Client** – Refined `upsertRecords` to return structured stats, expanded bulk update/delete logic, and implemented reliable file handling (multipart uploads, binary downloads, structured version lists).
+- **MCP Server** – Registered new handler groups (`createFileHandlers`, `createBulkOperationHandlers`) and removed legacy bulk handlers to avoid duplication.
+- **Documentation** – Updated `README.md`, `NEW_TOOLS_v1.6.0.md`, and supporting quick-start/implementation docs to describe the 1.6.0 release, corrected tool counts (48 total), and linked to the new deep-dive guide.
+- **Versioning** – Bumped `package.json`/lockfile to `1.6.0` to reflect the new feature set.
+
+
 ## [1.5.0] - 2025-11-13
 
 ### Added - Complete Codepage Lifecycle Management 🎉

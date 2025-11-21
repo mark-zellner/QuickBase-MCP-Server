@@ -95,7 +95,9 @@ class QuickBaseMCPServer {
       ...this.createRelationshipHandlers(),
       ...this.createUtilityHandlers(),
       ...this.createCodepageHandlers(),
-      ...this.createAuthHandlers()
+      ...this.createAuthHandlers(),
+      ...this.createFileHandlers(),
+      ...this.createBulkOperationHandlers()
     };
   }
 
@@ -429,54 +431,7 @@ class QuickBaseMCPServer {
           ]
         };
       },
-      quickbase_bulk_delete_records: async (args) => {
-        const params = this.ensureObject(args, 'quickbase_bulk_delete_records');
-        const recordIds = this.toNumberArray(params.recordIds, 'recordIds');
-        if (!recordIds || recordIds.length === 0) {
-          throw new TypeError('No record IDs supplied for bulk delete');
-        }
-        await this.qbClient.deleteRecords(
-          this.toStringParam(params.tableId, 'tableId'),
-          recordIds
-        );
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Deleted ${recordIds.length} records`
-            }
-          ]
-        };
-      },
-      quickbase_upsert_records: async (args) => {
-        const params = this.ensureObject(args, 'quickbase_upsert_records');
-        if (!Array.isArray(params.records) || params.records.length === 0) {
-          throw new TypeError('No records supplied for upsert');
-        }
-        const records = params.records.map((record: any, index: number) => {
-          if (!record || typeof record !== 'object' || typeof record.data !== 'object') {
-            throw new TypeError(`Invalid record at index ${index}`);
-          }
-          return {
-            keyField: this.parseNumber(record.keyField, `records[${index}].keyField`),
-            keyValue: record.keyValue,
-            data: record.data as Record<string, any>
-          };
-        });
-        const response = await this.qbClient.upsertRecords(
-          this.toStringParam(params.tableId, 'tableId'),
-          records
-        );
-        const payload = response?.data ?? response;
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(payload, null, 2)
-            }
-          ]
-        };
-      }
+      // bulk operations moved to createBulkOperationHandlers
     };
   }
 
@@ -957,6 +912,157 @@ class QuickBaseMCPServer {
             {
               type: 'text',
               text: `OAuth URL: ${url}`
+            }
+          ]
+        };
+      }
+    };
+  }
+
+  private createFileHandlers(): Record<string, ToolHandler> {
+    return {
+      quickbase_upload_file: async (args) => {
+        const params = this.ensureObject(args, 'quickbase_upload_file');
+        const result = await this.qbClient.uploadFile(
+          this.toStringParam(params.tableId, 'tableId'),
+          this.parseNumber(params.recordId, 'recordId'),
+          this.parseNumber(params.fieldId, 'fieldId'),
+          this.toStringParam(params.fileName, 'fileName'),
+          this.toStringParam(params.fileData, 'fileData')
+        );
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `File uploaded successfully!\nFile: ${result.fileName}\nVersion: ${result.versionNumber}`
+            }
+          ]
+        };
+      },
+
+      quickbase_download_file: async (args) => {
+        const params = this.ensureObject(args, 'quickbase_download_file');
+        const result = await this.qbClient.downloadFile(
+          this.toStringParam(params.tableId, 'tableId'),
+          this.parseNumber(params.recordId, 'recordId'),
+          this.parseNumber(params.fieldId, 'fieldId'),
+          this.parseOptionalNumber(params.versionNumber)
+        );
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      },
+
+      quickbase_delete_file: async (args) => {
+        const params = this.ensureObject(args, 'quickbase_delete_file');
+        await this.qbClient.deleteFile(
+          this.toStringParam(params.tableId, 'tableId'),
+          this.parseNumber(params.recordId, 'recordId'),
+          this.parseNumber(params.fieldId, 'fieldId'),
+          this.parseNumber(params.versionNumber, 'versionNumber')
+        );
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `File version ${params.versionNumber} deleted successfully`
+            }
+          ]
+        };
+      },
+
+      quickbase_list_files: async (args) => {
+        const params = this.ensureObject(args, 'quickbase_list_files');
+        const files = await this.qbClient.listFiles(
+          this.toStringParam(params.tableId, 'tableId'),
+          this.parseNumber(params.recordId, 'recordId'),
+          this.parseNumber(params.fieldId, 'fieldId')
+        );
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(files, null, 2)
+            }
+          ]
+        };
+      }
+    };
+  }
+
+  private createBulkOperationHandlers(): Record<string, ToolHandler> {
+    return {
+      quickbase_upsert_records: async (args) => {
+        const params = this.ensureObject(args, 'quickbase_upsert_records');
+        
+        if (!Array.isArray(params.records)) {
+          throw new TypeError('records must be an array');
+        }
+
+        const result = await this.qbClient.upsertRecords(
+          this.toStringParam(params.tableId, 'tableId'),
+          params.records.map((record: any, index: number) => ({
+            keyField: this.parseNumber(record.keyField, `records[${index}].keyField`),
+            keyValue: record.keyValue,
+            data: record.data
+          }))
+        );
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Upsert completed!\nCreated: ${result.created.length}\nUpdated: ${result.updated.length}\nUnchanged: ${result.unchanged.length}\nTotal: ${result.totalProcessed}`
+            }
+          ]
+        };
+      },
+
+      quickbase_bulk_update_records: async (args) => {
+        const params = this.ensureObject(args, 'quickbase_bulk_update_records');
+        
+        if (!Array.isArray(params.updates)) {
+          throw new TypeError('updates must be an array');
+        }
+
+        const result = await this.qbClient.bulkUpdateRecords(
+          this.toStringParam(params.tableId, 'tableId'),
+          params.updates.map((update: any, index: number) => ({
+            recordId: this.parseNumber(update.recordId, `updates[${index}].recordId`),
+            fields: update.fields
+          }))
+        );
+
+        const errorMsg = result.errors.length > 0 
+          ? `\n\nErrors:\n${result.errors.map(e => `  Record ${e.recordId}: ${e.error}`).join('\n')}`
+          : '';
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Bulk update completed!\nUpdated: ${result.updated.length} records${errorMsg}`
+            }
+          ]
+        };
+      },
+
+      quickbase_bulk_delete_records: async (args) => {
+        const params = this.ensureObject(args, 'quickbase_bulk_delete_records');
+        const deleted = await this.qbClient.bulkDeleteRecords(
+          this.toStringParam(params.tableId, 'tableId'),
+          this.toStringParam(params.where, 'where')
+        );
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Successfully deleted ${deleted} records`
             }
           ]
         };

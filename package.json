@@ -1,6 +1,6 @@
 {
   "name": "quickbase-mcp-server",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "A comprehensive Model Context Protocol (MCP) server for QuickBase integration with complete codepage lifecycle management. Build, test, deploy, and version control QuickBase codepages with AI assistance.",
   "main": "dist/index.js",
   "type": "module",

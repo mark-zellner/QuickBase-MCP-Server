@@ -1,45 +1,38 @@
 # QuickBase MCP Server
 
-[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](CHANGELOG.md)
-[![MCP Tools](https://img.shields.io/badge/MCP%20Tools-41-green.svg)](#mcp-tools)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](CHANGELOG.md)
+[![MCP Tools](https://img.shields.io/badge/MCP%20Tools-48-green.svg)](#mcp-tools)
 [![Codepage Tools](https://img.shields.io/badge/Codepage%20Tools-14-orange.svg)](CODEPAGE_QUICK_REF.md)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-11%2F14%20passing-yellow.svg)](#testing)
 
 A comprehensive QuickBase development toolkit consisting of:
 
-1. **MCP Server** - Model Context Protocol server with 41 tools for AI-assisted QuickBase operations
+1. **MCP Server** - Model Context Protocol server with 48 tools for AI-assisted QuickBase operations
 2. **Codepage Development Platform** - Web-based IDE for creating and deploying QuickBase codepages
 3. **Session Authentication Library** - Secure, token-free QuickBase integration
 
-## 🎉 What's New in v1.5.0 - Complete Codepage Lifecycle!
+## 🎉 What's New in v1.6.0 - File Attachments & Bulk Operations!
 
-### ✨ Full End-to-End Codepage Management (14 Tools!)
-- **🔧 Complete CRUD** - Create, Read, Update, Delete codepages with full metadata
-- **🧪 Testing & Validation** - Syntax, API, and security validation built-in
-- **📦 Deployment** - Deploy, clone, import/export in JSON/HTML/Markdown
-- **📚 Version Control** - Save versions, view history, rollback changes
-- **🔍 Search & Discovery** - Find by name, tags, target table, status
+### ✨ New Capabilities (7 New Tools!)
+- **📎 File Attachment Management** - Upload, download, delete, and list file attachments (4 tools)
+- **🔄 Enhanced Bulk Operations** - Upsert, bulk update, and bulk delete records (3 tools)
+- **⚡ Improved Performance** - Batch operations reduce API calls and improve efficiency
+- **💼 Business-Ready** - Tools designed for real-world document and data management
 
-### 🛡️ Quality Assurance Features
-- ✅ **Syntax Validation** - HTML tag closure, JavaScript error detection
-- ✅ **API Validation** - QuickBase API usage pattern analysis
-- ✅ **Security Scanning** - eval(), XSS, credential detection
-- ✅ **Best Practices** - qdb.api priority recommendations
+### 📎 File Management Features
+- ✅ **Upload Files** - Attach documents, images, PDFs to records
+- ✅ **Download Files** - Retrieve file attachments with version support
+- ✅ **Delete Files** - Remove specific file versions
+- ✅ **List Files** - View all file versions with metadata
 
-### 🧪 Comprehensive Testing
-- ✅ **14 End-to-End Tests** - Full lifecycle coverage
-- ✅ **78.6% Pass Rate** - 11/14 tests passing
-- ✅ **Automated Test Runner** - `npm run test:lifecycle`
-- ✅ **JSON Results Export** - Detailed test reports
+### 🔄 Bulk Operation Features
+- ✅ **Upsert Records** - Insert or update based on unique key
+- ✅ **Bulk Updates** - Update multiple records in one operation
+- ✅ **Bulk Deletes** - Delete multiple records using query filters
+- ✅ **Error Handling** - Per-record error reporting
 
-### 📖 Documentation Overhaul
-- ✅ **Complete v1.5.0 Guide** - [README_v1.5.0.md](README_v1.5.0.md)
-- ✅ **Quick Reference** - [CODEPAGE_QUICK_REF.md](CODEPAGE_QUICK_REF.md)
-- ✅ **Updated Changelog** - [CHANGELOG.md](CHANGELOG.md)
-- ✅ **Field Mappings** - Codepages and versions tables documented
-
-[📖 **v1.5.0 Full Documentation**](README_v1.5.0.md) | [⚡ **Quick Reference**](CODEPAGE_QUICK_REF.md) | [📝 **Changelog**](CHANGELOG.md)
+[📖 **v1.6.0 Full Documentation**](NEW_TOOLS_v1.6.0.md) | [⚡ **Quick Reference**](CODEPAGE_QUICK_REF.md) | [📝 **Changelog**](CHANGELOG.md)
 
 ---
 
@@ -256,25 +249,25 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 
 > Tip: Run `npm run build` first so that `dist/index.js` exists. On Windows use a path such as `C:/Users/you/QuickBase-MCP-Server/dist/index.js` in the `args` array.
 
-## Available Tools
+## Available Tools (48 Total)
 
-### Application Tools
+### Application Tools (3)
 - `quickbase_get_app_info` - Get application information
 - `quickbase_get_tables` - List all tables
 - `quickbase_test_connection` - Test connection
 
-### Table Tools
+### Table Tools (3)
 - `quickbase_create_table` - Create new table
 - `quickbase_get_table_info` - Get table details
 - `quickbase_delete_table` - Delete table
 
-### Field Tools
+### Field Tools (4)
 - `quickbase_get_table_fields` - Get all fields
 - `quickbase_create_field` - Create new field
 - `quickbase_update_field` - Update existing field
 - `quickbase_delete_field` - Delete field
 
-### Record Tools
+### Record Tools (7)
 - `quickbase_query_records` - Query with filters/sorting
 - `quickbase_get_record` - Get specific record
 - `quickbase_create_record` - Create new record
@@ -283,35 +276,50 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 - `quickbase_bulk_create_records` - Create multiple records
 - `quickbase_search_records` - Search by text
 
-### Pricing Demo Tools
-- `pricing_save_record` - Save a pricing calculator record (MSRP, discount, financing, trade-in, final price, make, model)
-- `pricing_query_records` - Query pricing records with optional MSRP range and make/model filters
-- `pricing_update_record` - Update pricing-related numeric fields for an existing record
+### 🆕 File Attachment Tools (4) - NEW in v1.6.0
+- `quickbase_upload_file` - Upload file to attachment field
+- `quickbase_download_file` - Download file from attachment field
+- `quickbase_delete_file` - Delete specific file version
+- `quickbase_list_files` - List all file versions
 
-Example pricing save:
-```json
-{
-  "name": "pricing_save_record",
-  "arguments": {
-    "tableId": "bvhuaz8wz", // optional if PRICING_TABLE_ID set in .env
-    "msrp": 35000,
-    "discount": 2000,
-    "financingRate": 3.9,
-    "tradeInValue": 5000,
-    "finalPrice": 28000,
-    "vehicleMake": "Toyota",
-    "vehicleModel": "Camry"
-  }
-}
-```
+### 🆕 Bulk Operations (3) - NEW in v1.6.0
+- `quickbase_upsert_records` - Insert or update based on unique key
+- `quickbase_bulk_update_records` - Update multiple records at once
+- `quickbase_bulk_delete_records` - Delete multiple records by query
 
-### Relationship Tools
+### Relationship Tools (7)
 - `quickbase_create_relationship` - Create table relationship
 - `quickbase_get_relationships` - Get existing relationships
+- `quickbase_create_advanced_relationship` - Create with auto-lookup fields
+- `quickbase_create_lookup_field` - Create lookup field
+- `quickbase_validate_relationship` - Validate relationship integrity
+- `quickbase_get_relationship_details` - Get detailed relationship info
+- `quickbase_create_junction_table` - Create many-to-many junction table
 
-### Utility Tools
+### Codepage Management Tools (14)
+- `quickbase_save_codepage` - Save codepage (simple)
+- `quickbase_get_codepage` - Retrieve codepage
+- `quickbase_list_codepages` - List all codepages
+- `quickbase_execute_codepage` - Get execution metadata
+- `quickbase_deploy_codepage` - Deploy with full metadata
+- `quickbase_update_codepage` - Update existing codepage
+- `quickbase_search_codepages` - Search by name/tags/table
+- `quickbase_clone_codepage` - Clone and modify
+- `quickbase_validate_codepage` - Validate syntax/API/security
+- `quickbase_export_codepage` - Export as HTML/JSON/Markdown
+- `quickbase_import_codepage` - Import from various formats
+- `quickbase_save_codepage_version` - Save version snapshot
+- `quickbase_get_codepage_versions` - Get version history
+- `quickbase_rollback_codepage` - Rollback to previous version
+
+### Utility Tools (2)
 - `quickbase_get_reports` - Get all reports
 - `quickbase_run_report` - Run specific report
+
+### Auth Tools (1)
+- `quickbase_initiate_oauth` - Initiate OAuth PKCE flow
+
+---
 
 ## Example Usage
 

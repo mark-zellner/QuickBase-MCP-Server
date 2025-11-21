@@ -213,6 +213,58 @@ const InitiateOAuthSchema = z.object({
   scopes: z.array(z.string()).optional().describe('OAuth scopes (e.g., ["read:table", "write:table"])')
 });
 
+// File attachment schemas
+const UploadFileSchema = z.object({
+  tableId: z.string().describe('Table ID'),
+  recordId: z.number().describe('Record ID'),
+  fieldId: z.number().describe('File attachment field ID'),
+  fileName: z.string().describe('Name of the file'),
+  fileData: z.string().describe('Base64 encoded file data')
+});
+
+const DownloadFileSchema = z.object({
+  tableId: z.string().describe('Table ID'),
+  recordId: z.number().describe('Record ID'),
+  fieldId: z.number().describe('File attachment field ID'),
+  versionNumber: z.number().optional().describe('Specific version to download (optional)')
+});
+
+const DeleteFileSchema = z.object({
+  tableId: z.string().describe('Table ID'),
+  recordId: z.number().describe('Record ID'),
+  fieldId: z.number().describe('File attachment field ID'),
+  versionNumber: z.number().describe('Version number to delete')
+});
+
+const ListFilesSchema = z.object({
+  tableId: z.string().describe('Table ID'),
+  recordId: z.number().describe('Record ID'),
+  fieldId: z.number().describe('File attachment field ID')
+});
+
+// Upsert and bulk operation schemas
+const UpsertRecordsSchema = z.object({
+  tableId: z.string().describe('Table ID'),
+  records: z.array(z.object({
+    keyField: z.number().describe('Field ID to use as unique key'),
+    keyValue: z.any().describe('Value of the key field'),
+    data: z.record(z.any()).describe('Field values to insert/update')
+  })).describe('Records to upsert')
+});
+
+const BulkUpdateRecordsSchema = z.object({
+  tableId: z.string().describe('Table ID'),
+  updates: z.array(z.object({
+    recordId: z.number().describe('Record ID to update'),
+    fields: z.record(z.any()).describe('Fields to update')
+  })).describe('Records to update')
+});
+
+const BulkDeleteRecordsSchema = z.object({
+  tableId: z.string().describe('Table ID'),
+  where: z.string().describe('QuickBase query to select records to delete')
+});
+
 // Define all MCP tools
 export const quickbaseTools: Tool[] = [
   // ========== APPLICATION TOOLS ==========
@@ -872,6 +924,130 @@ export const quickbaseTools: Tool[] = [
       required: ['clientId', 'redirectUri']
     }
   },
+
+  // ========== FILE ATTACHMENT TOOLS ==========
+  {
+    name: 'quickbase_upload_file',
+    description: 'Upload a file to a file attachment field',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID' },
+        recordId: { type: 'number', description: 'Record ID' },
+        fieldId: { type: 'number', description: 'File attachment field ID' },
+        fileName: { type: 'string', description: 'Name of the file' },
+        fileData: { type: 'string', description: 'Base64 encoded file data' }
+      },
+      required: ['tableId', 'recordId', 'fieldId', 'fileName', 'fileData']
+    }
+  },
+
+  {
+    name: 'quickbase_download_file',
+    description: 'Download a file from a file attachment field',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID' },
+        recordId: { type: 'number', description: 'Record ID' },
+        fieldId: { type: 'number', description: 'File attachment field ID' },
+        versionNumber: { type: 'number', description: 'Specific version to download (optional)' }
+      },
+      required: ['tableId', 'recordId', 'fieldId']
+    }
+  },
+
+  {
+    name: 'quickbase_delete_file',
+    description: 'Delete a file from a file attachment field',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID' },
+        recordId: { type: 'number', description: 'Record ID' },
+        fieldId: { type: 'number', description: 'File attachment field ID' },
+        versionNumber: { type: 'number', description: 'Version number to delete' }
+      },
+      required: ['tableId', 'recordId', 'fieldId', 'versionNumber']
+    }
+  },
+
+  {
+    name: 'quickbase_list_files',
+    description: 'List all file versions in a file attachment field',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID' },
+        recordId: { type: 'number', description: 'Record ID' },
+        fieldId: { type: 'number', description: 'File attachment field ID' }
+      },
+      required: ['tableId', 'recordId', 'fieldId']
+    }
+  },
+
+  // ========== UPSERT & BULK OPERATIONS ==========
+  {
+    name: 'quickbase_upsert_records',
+    description: 'Insert or update records based on a unique key field (upsert operation)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID' },
+        records: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              keyField: { type: 'number', description: 'Field ID to use as unique key' },
+              keyValue: { description: 'Value of the key field' },
+              data: { type: 'object', description: 'Field values to insert/update', additionalProperties: true }
+            },
+            required: ['keyField', 'keyValue', 'data']
+          },
+          description: 'Records to upsert'
+        }
+      },
+      required: ['tableId', 'records']
+    }
+  },
+
+  {
+    name: 'quickbase_bulk_update_records',
+    description: 'Update multiple records at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID' },
+        updates: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              recordId: { type: 'number', description: 'Record ID to update' },
+              fields: { type: 'object', description: 'Fields to update', additionalProperties: true }
+            },
+            required: ['recordId', 'fields']
+          },
+          description: 'Records to update'
+        }
+      },
+      required: ['tableId', 'updates']
+    }
+  },
+
+  {
+    name: 'quickbase_bulk_delete_records',
+    description: 'Delete multiple records using a query filter',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tableId: { type: 'string', description: 'Table ID' },
+        where: { type: 'string', description: 'QuickBase query to select records to delete (e.g., "{6.GT.100}")' }
+      },
+      required: ['tableId', 'where']
+    }
+  },
 ];
 
 // Export schemas for validation
@@ -903,5 +1079,12 @@ export {
   CodepageVersionSchema,
   GetCodepageVersionsSchema,
   RollbackCodepageSchema,
-  InitiateOAuthSchema
-}; 
+  InitiateOAuthSchema,
+  UploadFileSchema,
+  DownloadFileSchema,
+  DeleteFileSchema,
+  ListFilesSchema,
+  UpsertRecordsSchema,
+  BulkUpdateRecordsSchema,
+  BulkDeleteRecordsSchema
+};
