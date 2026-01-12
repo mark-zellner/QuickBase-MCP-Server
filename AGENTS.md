@@ -151,7 +151,32 @@ Uses QB-USER-TOKEN in Authorization header with realm hostname.
 - `src/types/quickbase.ts`: Data schemas
 
 ---
+## 🚀 QuickBase Code Page Best Practices (Codepage Hero V2)
 
+**Working Pattern for January 2026** - Verified in `MyDealership.html` and `DealSheet_Pricing_v2.3.html`.
+
+When building client-side code pages that interact with QuickBase, **DO NOT** rely on:
+- `qdb.api` (Legacy, often missing)
+- `QB.api` (Legacy, inconsistent)
+- Standard `fetch` with User Tokens (Security risk, CORS errors)
+- `GET /records` (404 Error - Incorrect endpoint)
+
+**DO USE** the "Codepage Hero V2" pattern:
+
+### 1. The Strategy
+1.  **Identity**: Embed a `QuickBaseClient` class directly in the HTML.
+2.  **Auth**: Use `GET /auth/temporary/{tableId}` with `credentials: 'include'` to exchange the current session cookie for a temporary API token.
+3.  **API**: Use that token to call the JSON API (`https://api.quickbase.com/v1`).
+4.  **Querying**: ALWAYS use **`POST /records/query`** to read data. `GET /records` is invalid.
+5.  **Saving**: Use **`POST /records`** with multiple fallback paths for ID extraction (`resp.data[0].id`, `resp.metadata.createdRecordIds`, `resp.id`).
+
+### 2. Implementation Template (The "Golden Block")
+Refer to `docs/patterns/CODEPAGE_HERO_V2.md` for the complete, copy-pasteable implementation.
+
+### 3. Critical Fixes
+- **Query 404s**: If you see `404 Path not found` when querying, change `GET /records` to `POST /records/query`.
+- **Missing IDs**: QuickBase's response format varies. Check `resp.data[0].id` AND `resp.metadata.createdRecordIds` AND `resp.id`.
+- **CORS**: Only the initial `/auth/temporary` call needs `credentials: 'include'`. All subsequent API calls should use `credentials: 'omit'` and the `QB-TEMP-TOKEN` header.
 ## � Working QuickBase Integration Patterns (From Deal Sheet)
 
 Based on the successful Deal Sheet implementation, here are the **proven working patterns** for QuickBase codepage integration:

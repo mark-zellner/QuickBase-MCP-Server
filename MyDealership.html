@@ -478,51 +478,137 @@
             }
         };
 
-            function exportClient(tag) {
-                const resolvedClient = globalThis.qbClient
-                    ?? (typeof client === 'undefined' ? undefined : client)
-                    ?? globalThis.window?.qbClient;
+    // --- QuickBase Codepage Hero Client (Inline) ---
+    class QuickBaseClient {
+        constructor(options = {}) {
+            this.mode = 'session-temp-token';
+            this.baseURL = 'https://api.quickbase.com/v1';
+            this.timeout = options.timeout || 30000;
+            this.maxRetries = options.maxRetries || 3;
+            this.tokenCache = new Map(); // Cache temp tokens by tableId
+            this.tokenExpiry = 5 * 60 * 1000; // 5 minutes
 
-                if (!resolvedClient) {
-                    return false;
-                }
-
-                globalThis.qbClient = resolvedClient;
-                globalThis.Client = resolvedClient;
-                globalThis.client = resolvedClient;
-                console.log(`[QuickBaseClient] exported (${tag})`);
-                return true;
+            // Get realm from current location
+            const hostname = globalThis.location?.hostname ?? '';
+            if (hostname.includes('quickbase.com')) {
+                const realmMatch = hostname.match(/^(.+)\.quickbase\.com$/);
+                this.realm = realmMatch ? realmMatch[1] : hostname;
+            } else {
+                this.realm = hostname || 'localhost'; // Development mode
             }
 
-            (async function run(){
-                const strategies = IS_QB
-                    ? [
-                        { action: () => attemptScript(CODEPAGE), tag: 'script' },
-                        { action: () => attemptScript(CDN), tag: 'cdn' },
-                        { action: () => attemptFetchEval(CODEPAGE), tag: 'fetch-eval' },
-                        { action: () => attemptScript(LOCAL), tag: 'local' }
-                    ]
-                    : [
-                        { action: () => attemptScript(LOCAL), tag: 'local' },
-                        { action: () => attemptScript(CDN), tag: 'cdn' },
-                        { action: () => attemptScript(CODEPAGE), tag: 'codepage-dev' }
-                    ];
+            console.log('[QuickBaseClient] Initialized for realm:', this.realm);
+        }
 
-            for (const { action, tag } of strategies) {
-                    const loaded = await action();
-                    if (loaded && exportClient(tag)) {
-                        return;
+        async getTemporaryToken(tableId) {
+            const cached = this.tokenCache.get(tableId);
+            if (cached && (Date.now() - cached.timestamp < this.tokenExpiry)) {
+                return cached.token;
+            }
+
+            const url = `${this.baseURL}/auth/temporary/${tableId}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'QB-Realm-Hostname': `${this.realm}.quickbase.com` },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                try {
+                    // Try to parse json error if possible
+                    const err = await response.json();
+                    throw new Error(`Failed to get temporary token: ${response.status} ${err.message}`);
+                } catch (e) {
+                     const errorText = await response.text().catch(() => 'Unknown error');
+                     throw new Error(`Failed to get temporary token: ${response.status} ${errorText}`);
+                }
+            }
+
+            const data = await response.json();
+            const token = data.temporaryAuthorization;
+            this.tokenCache.set(tableId, { token: token, timestamp: Date.now() });
+            return token;
+        }
+
+        async request(method, endpoint, data = null, tableId = null) {
+            if (!tableId && data) {
+                tableId = data.to || data.from || data.tableId;
+            }
+            if (!tableId) {
+                throw new Error('tableId is required for QuickBase API calls');
+            }
+
+            const token = await this.getTemporaryToken(tableId);
+            let url = `${this.baseURL}${endpoint}`;
+            const config = {
+                method: method.toUpperCase(),
+                headers: {
+                    'Authorization': `QB-TEMP-TOKEN ${token}`,
+                    'Content-Type': 'application/json',
+                    'QB-Realm-Hostname': `${this.realm}.quickbase.com`
+                },
+                credentials: 'omit'
+            };
+
+            if (data && ['POST', 'PATCH', 'PUT'].includes(method.toUpperCase())) {
+                config.body = JSON.stringify(data);
+            } else if (data && method.toUpperCase() === 'GET') {
+                const params = new URLSearchParams();
+                Object.entries(data).forEach(([key, value]) => {
+                    if (value !== null && value !== undefined) {
+                        params.append(key, value.toString());
+                    }
+                });
+                url += `?${params.toString()}`;
+            }
+
+            let lastError;
+            for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+                try {
+                    console.log(`[QB] ${method} ${endpoint} (attempt ${attempt})`);
+                    const response = await fetch(url, config);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        if (response.status === 401 && attempt === 1) {
+                            console.warn('[QB] Token expired, clearing cache and retrying');
+                            this.tokenCache.delete(tableId);
+                            // Refresh token for next loop
+                            const newToken = await this.getTemporaryToken(tableId);
+                            config.headers['Authorization'] = `QB-TEMP-TOKEN ${newToken}`;
+                            continue;
+                        }
+                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    }
+
+                    const result = await response.json();
+                    return result;
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`[QB] Attempt ${attempt} failed:`, error.message);
+                    if (attempt < this.maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
                     }
                 }
+            }
+            throw lastError;
+        }
 
-                console.error('[QuickBaseClient] All strategies failed - using shim');
-                class QuickBaseShimClient {
-                    mode = 'shim';
-                    async post() { throw new Error('shim'); }
-                    async get() { throw new Error('shim'); }
-                }
-                globalThis.qbClient = new QuickBaseShimClient();
-            })();
+        async get(endpoint, params = {}, tableId = null) { return this.request('GET', endpoint, params, tableId); }
+        async post(endpoint, data = {}, tableId = null) { return this.request('POST', endpoint, data, tableId); }
+    }
+
+    // Initialize Global Client
+    const client = new QuickBaseClient();
+    if (typeof window !== 'undefined') {
+        window.qbClient = client;
+        window.Client = QuickBaseClient;
+    }
+    if (typeof globalThis !== 'undefined') {
+        globalThis.qbClient = client;
+    }
+    console.log('[QuickBaseClient] Hero client initialized!');
+    // ---------------------------------------------------
 
         // Vehicle data for demo purposes
         const vehicleData = {
@@ -562,6 +648,9 @@
             testConnectionButton.textContent = '🔍 Testing...';
             showSaveStatus('Testing QuickBase connection...', '');
 
+            // Ensure QDB is loaded
+            await waitForQdbApi();
+
             try {
                 const debugData = {
                     timestamp: new Date().toISOString(),
@@ -597,16 +686,29 @@
                     });
                     resultMeta = { success: true, method: 'QB.api.queryRecords', count: resp.records?.length || 0 };
                 } else if (globalThis.qbClient && globalThis.qbClient.mode !== 'shim') {
-                    console.log('[Test] Using session client get(records)');
-                    const resp = await globalThis.qbClient.get('records', {
+                    console.log('[Test] Using session client post(/records/query)');
+                    // Use POST /records/query for querying (GET /records is not standard for this)
+                    const resp = await globalThis.qbClient.post('/records/query', {
                         from: CONFIG.pricingTableId,
                         select: [3],
                         where: '{3.GT.0}',
                         top: 1
                     });
-                    resultMeta = { success: true, method: 'sessionClient.get', rawCount: resp.data?.length || 0 };
+                    resultMeta = { success: true, method: 'sessionClient.post(/records/query)', rawCount: resp.data?.length || 0 };
                 } else {
-                    throw new Error('No QuickBase API available (qdb.api / QB.api / session client)');
+                    // Try waiting one more time explicitly for QB global if qdb failed
+                    if (typeof QB === 'undefined') {
+                        await new Promise(r => setTimeout(r, 2000));
+                        if (typeof QB !== 'undefined' && QB.api) {
+                             console.log('[Test] QB.api appeared late');
+                             const resp = await QB.api.queryRecords({ from: CONFIG.pricingTableId, select: [3], top: 1 });
+                             resultMeta = { success: true, method: 'QB.api.queryRecords (late)', count: resp.records?.length || 0 };
+                        } else {
+                            throw new Error('No QuickBase API available (qdb.api / QB.api / session client)');
+                        }
+                    } else {
+                        throw new Error('No QuickBase API available (qdb.api / QB.api / session client)');
+                    }
                 }
 
                 debugData.testResult = resultMeta;
@@ -788,21 +890,33 @@
                 if (typeof qdb !== 'undefined' && qdb.api) {
                     console.log('[QuickBase] Using qdb.api.addRecord');
                     const resp = await qdb.api.addRecord(CONFIG.pricingTableId, recordData);
-                    recordId = resp.recordId || resp.rid || resp.id || null;
+                    console.log('[QuickBase] qdb.api response:', JSON.stringify(resp));
+                    recordId = resp.recordId || resp.rid || resp.id || resp.newID || null;
                 } else if (typeof QB !== 'undefined' && QB.api) {
                     console.log('[QuickBase] Using QB.api.addRecord');
                     const resp = await QB.api.addRecord(CONFIG.pricingTableId, recordData);
-                    recordId = resp.recordId || resp.rid || resp.id || null;
+                    console.log('[QuickBase] QB.api response:', JSON.stringify(resp));
+                    recordId = resp.recordId || resp.rid || resp.id || resp.newID || null;
                 } else if (globalThis.qbClient && globalThis.qbClient.mode !== 'shim') {
                     console.log('[QuickBase] Using session client post(records)');
-                    const resp = await globalThis.qbClient.post('records', { to: CONFIG.pricingTableId, data: [recordData] });
-                    recordId = resp?.data?.[0]?.id || null;
+                    const resp = await globalThis.qbClient.post('/records', { to: CONFIG.pricingTableId, data: [recordData] });
+                    console.log('[QuickBase] session client response:', JSON.stringify(resp));
+                    
+                    // Try multiple ways to find the ID
+                    if (resp.data && resp.data.length > 0 && resp.data[0].id) {
+                        recordId = resp.data[0].id; // Standard JSON API
+                    } else if (resp.metadata && resp.metadata.createdRecordIds && resp.metadata.createdRecordIds.length > 0) {
+                        recordId = resp.metadata.createdRecordIds[0]; // Metadata fallback
+                    } else if (resp.id || resp.recordId || resp.rid) {
+                         recordId = resp.id || resp.recordId || resp.rid; // Flat response fallback
+                    }
                 } else {
                     throw new Error('No QuickBase API available for save');
                 }
 
                 if (!recordId) {
-                    throw new Error('Record ID not returned by API');
+                    console.error('[QuickBase] Failed to extract ID from response. Full response logged above.');
+                    throw new Error('Record ID not returned by API (check console/debug info)');
                 }
 
                 console.log('[QuickBase] ✅ Saved successfully via session API');

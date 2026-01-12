@@ -45,3 +45,13 @@ Differs from common practices: QuickBase requires realm hostname in headers, use
 Cross-component communication: Server instantiates QuickBaseClient, tools reference client methods, types shared across modules.
 
 Reference files: `src/index.ts` shows MCP server setup with tool routing; `src/quickbase/client.ts` exemplifies API wrapper with error handling; `src/tools/index.ts` defines parameter schemas like `QueryRecordsSchema`.
+
+## Code Page Development (Codepage Hero V2)
+
+When modifying or creating QuickBase Code Pages (HTML files uploaded to QB):
+
+1.  **Architecture**: Use the "Codepage Hero" pattern. Embed a `QuickBaseClient` class directly in the HTML.
+2.  **Authentication**: Never hardcode tokens. Use `GET /auth/temporary/{tableId}` with `credentials: 'include'` to exchange session cookies for a temp token.
+3.  **Data querying**: Always use `POST /records/query` (JSON API). **Never** use `GET /records`.
+4.  **Reference Implementation**: See `docs/patterns/CODEPAGE_HERO_V2.md` and `MyDealership.html`.
+5.  **Deployment**: Use `npm run deploy:native -- [filename] --id=[pageId]`.

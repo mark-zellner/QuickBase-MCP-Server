@@ -1048,6 +1048,34 @@ export const quickbaseTools: Tool[] = [
       required: ['tableId', 'where']
     }
   },
+
+  {
+    name: 'deploy_codepage',
+    description: 'Create or replace a Quickbase code page from a local file',
+    inputSchema: {
+      type: 'object',
+      required: ['pageName', 'sourcePath'],
+      properties: {
+        appId: { type: 'string', description: 'Target app DBID (defaults to QB_APP_ID)' },
+        pageName: { type: 'string', description: 'Name with extension, e.g. index.html' },
+        pageType: { type: 'integer', enum: [1, 3], default: 1, description: '1=HTML/Text, 3=Exact Form' },
+        sourcePath: { type: 'string', description: 'Workspace-relative path to local file to deploy' },
+        overwriteById: { type: 'integer', description: 'Optional pageId to replace; use when renaming' }
+      }
+    }
+  },
+  {
+    name: 'get_codepage',
+    description: 'Fetch stored content of a Quickbase code page by id or name',
+    inputSchema: {
+      type: 'object',
+      required: ['pageIdOrName'],
+      properties: {
+        appId: { type: 'string', description: 'Target app DBID (defaults to QB_APP_ID)' },
+        pageIdOrName: { type: 'string', description: 'Page ID (e.g. 7) or name (e.g. index.html)' }
+      }
+    }
+  },
 ];
 
 // Export schemas for validation

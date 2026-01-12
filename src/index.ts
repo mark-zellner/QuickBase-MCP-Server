@@ -12,10 +12,19 @@ import {
 import { QuickBaseClient } from './quickbase/client.js';
 import { quickbaseTools } from './tools/index.js';
 import { QuickBaseConfig } from './types/quickbase.js';
+import { deployCodepage, DeployCodepageSchema } from './tools/pages/deploy_codepage.js';
+import { getCodepage, GetCodepageSchema } from './tools/pages/get_codepage.js';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 
 // Load environment variables
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const envPath = resolve(__dirname, '../.env');
+dotenv.config({ path: envPath });
+
+console.error(`Loading environment from: ${envPath}`);
 
 type ToolContent = { type: 'text'; text: string };
 type ToolResponse = { content: ToolContent[] };
@@ -24,11 +33,12 @@ type ToolHandler = (args: unknown) => Promise<ToolResponse>;
 class QuickBaseMCPServer {
   private readonly server: Server;
   private readonly qbClient: QuickBaseClient;
+  private readonly config: QuickBaseConfig;
   private readonly toolHandlers: Record<string, ToolHandler>;
 
   constructor() {
     // Validate environment variables
-    const config: QuickBaseConfig = {
+    this.config = {
       realm: process.env.QB_REALM || '',
       userToken: process.env.QB_USER_TOKEN || '',
       appId: process.env.QB_APP_ID || '',
@@ -36,11 +46,11 @@ class QuickBaseMCPServer {
   maxRetries: Number.parseInt(process.env.QB_MAX_RETRIES || '3')
     };
 
-    if (!config.realm || !config.userToken || !config.appId) {
+    if (!this.config.realm || !this.config.userToken || !this.config.appId) {
       throw new Error('Missing required environment variables: QB_REALM, QB_USER_TOKEN, QB_APP_ID');
     }
 
-    this.qbClient = new QuickBaseClient(config);
+    this.qbClient = new QuickBaseClient(this.config);
     this.server = new Server(
       {
         name: process.env.MCP_SERVER_NAME || 'quickbase-mcp',
@@ -97,7 +107,8 @@ class QuickBaseMCPServer {
       ...this.createCodepageHandlers(),
       ...this.createAuthHandlers(),
       ...this.createFileHandlers(),
-      ...this.createBulkOperationHandlers()
+      ...this.createBulkOperationHandlers(),
+      ...this.createPageHandlers()
     };
   }
 
@@ -889,6 +900,38 @@ class QuickBaseMCPServer {
             {
               type: 'text',
               text: `Codepage rolled back successfully`
+            }
+          ]
+        };
+      }
+    };
+  }
+
+  private createPageHandlers(): Record<string, ToolHandler> {
+    return {
+      deploy_codepage: async (args) => {
+        // Validation via Zod
+        const params = DeployCodepageSchema.parse(args);
+        const result = await deployCodepage(params, this.config);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      },
+      get_codepage: async (args) => {
+        const params = GetCodepageSchema.parse(args);
+        const result = await getCodepage(params, this.config);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2)
             }
           ]
         };

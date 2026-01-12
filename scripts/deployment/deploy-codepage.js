@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { QuickBaseClient } from './dist/quickbase/client.js';
+import { QuickBaseClient } from '../../dist/quickbase/client.js';
 import fs from 'node:fs';
 import dotenv from 'dotenv';
 import path from 'node:path';
