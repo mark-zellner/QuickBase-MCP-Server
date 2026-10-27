@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-10-26
+
+Ground-up rewrite. See the README "Migrating from v1" section for details.
+
+### Changed
+- Built on the official MCP SDK (`McpServer.registerTool`) with zod input schemas and tool annotations.
+- One small fetch-based Quickbase client: required headers, timeouts, retry with backoff on 429 (honoring `Retry-After`) and on 5xx/network errors for idempotent requests only, typed error mapping.
+- Tools split into modules (apps, tables, fields, records, relationships, reports, files, auth, pages, codepages). Every v1 tool name is kept.
+- Config is environment-only and validated at startup. Requires Node.js 22.12+.
+- Vitest with mocked HTTP replaces Jest; ESLint 10 flat config; strict TypeScript.
+
+### Added
+- `quickbase_get_report`, `QB_READ_ONLY` mode, `QB_MAX_RETRIES`, `QB_WORKSPACE_DIR`, `.env.example`, `AGENTS.md`.
+- `confirm: true` guard on `delete_table` and `delete_field`; chunked bulk writes with partial-failure reporting.
+
+### Fixed
+- Wrong or non-existent endpoints for field deletion, relationship and lookup creation, file download and codepage rollback.
+- TLS verification is no longer disabled; `deploy_codepage` can no longer read files outside the workspace.
+- `initiate_oauth` returns a real PKCE verifier.
+
+### Removed
+- `axios`, `dotenv`, `jest`, `.env.development`. Live scripts and tests moved to `legacy/`; old root docs to `docs/archive/root/`.
+- Real token literals from docs and test files (the token remains in git history and must be revoked).
+
 ## [1.6.0] - 2025-11-20
 
 ### Added - File Attachments & Bulk Operations ⚡

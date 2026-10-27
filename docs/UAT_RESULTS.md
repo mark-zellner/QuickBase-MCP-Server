@@ -29,7 +29,7 @@ All critical functionality verified:
 ### Configuration
 ```bash
 QB_REALM=vibe.quickbase.com
-QB_USER_TOKEN=b3tqay_rwcp_*** (valid)
+QB_USER_TOKEN=REDACTED_QB_USER_TOKEN*** (valid)
 QB_APP_ID=bvhuaz7pn
 PRICING_TABLE_ID=bvhuaz8wz
 ```

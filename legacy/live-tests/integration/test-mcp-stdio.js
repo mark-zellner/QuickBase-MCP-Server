@@ -19,7 +19,7 @@ const server = spawn('node', [serverPath], {
     env: {
         ...process.env,
         QB_REALM: 'vibe.quickbase.com',
-        QB_USER_TOKEN: 'b3tqay_rwcp_0_bufr55cdre6q9cdneg5bjdwfvaw',
+        QB_USER_TOKEN: 'REDACTED_QB_USER_TOKEN',
         QB_APP_ID: 'bvhuaz7pn',
         CODEPAGE_TABLE_ID: 'bvi2ms4e9'
     }

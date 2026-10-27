@@ -1,579 +1,228 @@
-# QuickBase MCP Server
+# Quickbase MCP Server
 
-[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](CHANGELOG.md)
-[![MCP Tools](https://img.shields.io/badge/MCP%20Tools-48-green.svg)](#mcp-tools)
-[![Codepage Tools](https://img.shields.io/badge/Codepage%20Tools-14-orange.svg)](CODEPAGE_QUICK_REF.md)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-11%2F14%20passing-yellow.svg)](#testing)
+A [Model Context Protocol](https://modelcontextprotocol.io) server for the [Quickbase JSON REST API](https://developer.quickbase.com/). It lets Claude, Cursor and other MCP clients work with Quickbase apps, tables, fields, records, relationships, reports, files and code pages.
 
-A comprehensive QuickBase development toolkit consisting of:
+> **v2.0.0** is a ground-up rewrite (official MCP SDK, zod schemas, one small REST client with retries). Every v1 tool name still exists; see [Migrating from v1](#migrating-from-v1) for the behavior changes.
 
-1. **MCP Server** - Model Context Protocol server with 48 tools for AI-assisted QuickBase operations
-2. **Codepage Development Platform** - Web-based IDE for creating and deploying QuickBase codepages
-3. **Session Authentication Library** - Secure, token-free QuickBase integration
+## Requirements
 
-## 🎉 What's New in v1.6.0 - File Attachments & Bulk Operations!
+- Node.js **22.12 or newer**
+- A Quickbase realm hostname (for example `mycompany.quickbase.com`)
+- A Quickbase [user token](https://help.quickbase.com/docs/create-and-manage-user-tokens) with access to the apps you want to use
 
-### ✨ New Capabilities (7 New Tools!)
-- **📎 File Attachment Management** - Upload, download, delete, and list file attachments (4 tools)
-- **🔄 Enhanced Bulk Operations** - Upsert, bulk update, and bulk delete records (3 tools)
-- **⚡ Improved Performance** - Batch operations reduce API calls and improve efficiency
-- **💼 Business-Ready** - Tools designed for real-world document and data management
+## Install and build
 
-### 📎 File Management Features
-- ✅ **Upload Files** - Attach documents, images, PDFs to records
-- ✅ **Download Files** - Retrieve file attachments with version support
-- ✅ **Delete Files** - Remove specific file versions
-- ✅ **List Files** - View all file versions with metadata
-
-### 🔄 Bulk Operation Features
-- ✅ **Upsert Records** - Insert or update based on unique key
-- ✅ **Bulk Updates** - Update multiple records in one operation
-- ✅ **Bulk Deletes** - Delete multiple records using query filters
-- ✅ **Error Handling** - Per-record error reporting
-
-[📖 **v1.6.0 Full Documentation**](NEW_TOOLS_v1.6.0.md) | [⚡ **Quick Reference**](CODEPAGE_QUICK_REF.md) | [📝 **Changelog**](CHANGELOG.md)
-
----
-
-## Overview
-
-This repository provides three powerful tools for QuickBase development:
-
-### 1. MCP Server
-A Model Context Protocol server that provides maximum flexibility for QuickBase operations through AI assistants like Claude. Create tables, add fields, modify relationships, perform CRUD operations, **and now manage codepages with full version control**.
-
-**Key Resources:**
-- [📖 Quick Start](QUICK_START.md)
-- [🔧 Setup Guide](docs/deployment/quickbase_cli_setup.md)
-- [📚 Directory Structure](STRUCTURE.md)
-- [🎯 Feature Request CLI](https://github.com/QuickBase/quickbase-cli/issues/45)
-
-### 2. QuickBase Codepage Hero
-A lightweight JavaScript library for building interactive QuickBase codepages. Deploy as a single codepage and use across all your QuickBase applications. **Now with v2.2 featuring pure session authentication - NO TOKENS REQUIRED!** ⭐
-
-[📖 **Codepage Guide**](CLAUDE.md) | [🚀 **Deployment**](docs/deployment/DEPLOYMENT.md) | [💡 **Example**](MyDealership.html) | [🔒 **Secure Version**](examples/quickbase_codepage_hero_session.js)
-
-### 3. Codepage Development Platform
-A complete web-based development environment for creating, testing, and deploying QuickBase codepages with minimal technical expertise. Built for dealership staff and business users to develop interactive applications like pricing calculators.
-
-[📖 **Platform Documentation**](platform/README.md) | [🚀 **Quick Start**](platform/README.md#-quick-start)
-
----
-
-## QuickBase Codepage Hero
-
-### What's New in v2.2 - Pure Session Authentication
-
-- **⭐ ZERO TOKENS**: No app tokens, user tokens, or temporary tokens - 100% session-based
-- **Maximum Security**: No credentials visible in codepage source code
-- **User Permissions**: Each user's own QuickBase permissions automatically applied
-- **Zero Configuration**: Deploy and use immediately - no token setup required
-- **SSO Compatible**: Works with Single Sign-On environments
-- **Simple API**: All CRUD operations with clean, intuitive methods
-
-### Quick Start
-
-**Deploy the library (2 minutes):**
-
-1. Create a new codepage in your QuickBase app (pageID=3)
-2. Copy [quickbase_codepage_hero_session.js](quickbase_codepage_hero_session.js) into the codepage
-3. Save and you're done! **No tokens to configure.**
-
-**Use in your codepages:**
-
-```html
-<script src="/db/YOUR_APP_ID?a=dbpage&pageID=3"></script>
-<script>
-// Test connection (optional)
-await qbClient.testConnection('YOUR_TABLE_ID');
-
-// Create a record - uses your session automatically!
-async function saveData() {
-    const result = await qbClient.createRecords('YOUR_TABLE_ID', [
-        {
-            6: { value: 'Toyota' },
-            7: { value: 28000 }
-        }
-    ]);
-    console.log('Saved!', result);
-}
-
-// Query records - your permissions applied
-async function loadData() {
-    const result = await qbClient.queryRecords('YOUR_TABLE_ID', {
-        select: [3, 6, 7, 8],
-        where: "{6.EX.'Toyota'}"
-    });
-    console.log('Records:', result.data);
-}
-</script>
-```
-
-### Example Application
-
-[MyDealership.html](MyDealership.html) demonstrates a complete pricing calculator that:
-- Loads vehicle data from QuickBase
-- Performs complex calculations
-- Saves results back to QuickBase
-- Includes professional UI and error handling
-
-**Try it**: Deploy to your app and access at:
-```
-https://YOUR_REALM.quickbase.com/db/YOUR_APP_ID?a=dbpage&pageID=2
-```
-
-### Features
-
-✅ **Session-based authentication** - No tokens to manage
-✅ **All CRUD operations** - Create, read, update, delete
-✅ **Query & reporting** - Advanced filtering and sorting
-✅ **Schema discovery** - Get tables, fields, and relationships
-✅ **Automatic retries** - Handles network issues gracefully
-✅ **TypeScript-ready** - Full type definitions available
-✅ **Zero dependencies** - Pure JavaScript, works everywhere
-
-### Documentation
-
-- [CLAUDE.md](CLAUDE.md) - Complete API reference and development guide
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Step-by-step deployment instructions
-- [guides/Quickbase_Session_Auth_Codepage.md](guides/Quickbase_Session_Auth_Codepage.md) - Authentication details
-- [guides/CODEPAGE_HERO_OPTIONS.md](guides/CODEPAGE_HERO_OPTIONS.md) - Advanced configuration
-
----
-
-## MCP Server
-
-### Features
-
-#### Application Management
-- Get application information
-- List all tables
-- Test connection
-
-#### Table Operations
-- Create new tables
-- Get table information
-- Update table properties
-- Delete tables
-
-#### Field Management
-- Get all fields for a table
-- Create new fields (all types supported)
-- Update existing fields
-- Delete fields
-- Support for lookups, formulas, relationships
-
-#### Record Operations
-- Query records with filtering and sorting
-- Get specific records
-- Create single or multiple records
-- Update existing records
-- Delete records
-- Search records by text
-- Bulk operations
-
-#### Relationship Management
-- Create parent-child relationships
-- Get existing relationships
-- Foreign key management
-
-#### Utility Functions
-- Get and run reports
-- Advanced querying capabilities
-- Error handling and retry logic
-
-## Installation
-
-1. **Clone and setup the server:**
 ```bash
-cd quickbase-mcp-server
-npm install
-```
-
-2. **Copy environment configuration:**
-```bash
-cp env.example .env
-```
-
-3. **Configure your QuickBase credentials in `.env`:**
-```bash
-# QuickBase Configuration
-QB_REALM=yourname.quickbase.com
-QB_USER_TOKEN=your_quickbase_user_token_here
-QB_APP_ID=yourid
-
-# Optional: Default settings
-QB_DEFAULT_TIMEOUT=30000
-QB_MAX_RETRIES=3
-
-# MCP Server Configuration
-MCP_SERVER_NAME=quickbase-mcp
-MCP_SERVER_VERSION=1.0.0
-```
-
-4. **Build the project:**
-```bash
+git clone https://github.com/mark-zellner/QuickBase-MCP-Server.git
+cd QuickBase-MCP-Server
+npm ci
 npm run build
 ```
 
-## Getting Your QuickBase User Token
+## Configuration
 
-1. Go to QuickBase → My Apps → User Account
-2. Click "Manage user tokens"
-3. Click "New user token"
-4. Give it a name like "MCP Server"
-5. Set appropriate permissions
-6. Copy the token to your `.env` file
+Configuration comes **only from environment variables** (the server does not load `.env` files itself; put the values in your MCP client's `env` block). See [`.env.example`](.env.example).
 
-## Usage
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `QB_REALM` | yes | | Realm hostname, e.g. `mycompany.quickbase.com` |
+| `QB_USER_TOKEN` | yes | | Quickbase user token |
+| `QB_APP_ID` | no | | Default app (DBID) for tools that take `appId` |
+| `QB_DEFAULT_TIMEOUT` | no | `30000` | Per-request timeout (ms) |
+| `QB_MAX_RETRIES` | no | `3` | Retries for 429 and transient failures (0 to 10) |
+| `QB_READ_ONLY` | no | `false` | `true` registers read-only tools only |
+| `CODEPAGE_TABLE_ID` | no | | Table that stores code pages |
+| `CODEPAGE_VERSION_TABLE_ID` | no | | Table that stores code page versions |
+| `QB_WORKSPACE_DIR` | no | working dir | `deploy_codepage` may only read files under this directory |
+| `QB_LOG_LEVEL` | no | `warn` | `error`, `warn`, `info` or `debug`. Logs go to stderr |
 
-### Run the server standalone:
-```bash
-npm start
-```
+Never commit a real token. The server redacts the token from logs and error messages.
 
-### Add to your MCP client configuration:
+## Use with an MCP client
 
-Add to your MCP client configuration (e.g., Claude Desktop):
+### Claude Desktop / Claude Code (`claude_desktop_config.json` or `.mcp.json`)
 
 ```json
 {
   "mcpServers": {
     "quickbase": {
       "command": "node",
-      "args": ["/absolute/path/to/quickbase-mcp-server/dist/index.js"],
+      "args": ["/absolute/path/to/QuickBase-MCP-Server/dist/index.js"],
       "env": {
-        "QB_REALM": "yourname.quickbase.com",
-        "QB_USER_TOKEN": "your_token_here",
-        "QB_APP_ID": "yourid"
+        "QB_REALM": "mycompany.quickbase.com",
+        "QB_USER_TOKEN": "your_user_token_here",
+        "QB_APP_ID": "bxxxxxxxx"
       }
     }
   }
 }
 ```
 
-> Tip: Run `npm run build` first so that `dist/index.js` exists. On Windows use a path such as `C:/Users/you/QuickBase-MCP-Server/dist/index.js` in the `args` array.
+### Cursor (`.cursor/mcp.json`)
 
-## Available Tools (48 Total)
-
-### Application Tools (3)
-- `quickbase_get_app_info` - Get application information
-- `quickbase_get_tables` - List all tables
-- `quickbase_test_connection` - Test connection
-
-### Table Tools (3)
-- `quickbase_create_table` - Create new table
-- `quickbase_get_table_info` - Get table details
-- `quickbase_delete_table` - Delete table
-
-### Field Tools (4)
-- `quickbase_get_table_fields` - Get all fields
-- `quickbase_create_field` - Create new field
-- `quickbase_update_field` - Update existing field
-- `quickbase_delete_field` - Delete field
-
-### Record Tools (7)
-- `quickbase_query_records` - Query with filters/sorting
-- `quickbase_get_record` - Get specific record
-- `quickbase_create_record` - Create new record
-- `quickbase_update_record` - Update existing record
-- `quickbase_delete_record` - Delete record
-- `quickbase_bulk_create_records` - Create multiple records
-- `quickbase_search_records` - Search by text
-
-### 🆕 File Attachment Tools (4) - NEW in v1.6.0
-- `quickbase_upload_file` - Upload file to attachment field
-- `quickbase_download_file` - Download file from attachment field
-- `quickbase_delete_file` - Delete specific file version
-- `quickbase_list_files` - List all file versions
-
-### 🆕 Bulk Operations (3) - NEW in v1.6.0
-- `quickbase_upsert_records` - Insert or update based on unique key
-- `quickbase_bulk_update_records` - Update multiple records at once
-- `quickbase_bulk_delete_records` - Delete multiple records by query
-
-### Relationship Tools (7)
-- `quickbase_create_relationship` - Create table relationship
-- `quickbase_get_relationships` - Get existing relationships
-- `quickbase_create_advanced_relationship` - Create with auto-lookup fields
-- `quickbase_create_lookup_field` - Create lookup field
-- `quickbase_validate_relationship` - Validate relationship integrity
-- `quickbase_get_relationship_details` - Get detailed relationship info
-- `quickbase_create_junction_table` - Create many-to-many junction table
-
-### Codepage Management Tools (14)
-- `quickbase_save_codepage` - Save codepage (simple)
-- `quickbase_get_codepage` - Retrieve codepage
-- `quickbase_list_codepages` - List all codepages
-- `quickbase_execute_codepage` - Get execution metadata
-- `quickbase_deploy_codepage` - Deploy with full metadata
-- `quickbase_update_codepage` - Update existing codepage
-- `quickbase_search_codepages` - Search by name/tags/table
-- `quickbase_clone_codepage` - Clone and modify
-- `quickbase_validate_codepage` - Validate syntax/API/security
-- `quickbase_export_codepage` - Export as HTML/JSON/Markdown
-- `quickbase_import_codepage` - Import from various formats
-- `quickbase_save_codepage_version` - Save version snapshot
-- `quickbase_get_codepage_versions` - Get version history
-- `quickbase_rollback_codepage` - Rollback to previous version
-
-### Utility Tools (2)
-- `quickbase_get_reports` - Get all reports
-- `quickbase_run_report` - Run specific report
-
-### Auth Tools (1)
-- `quickbase_initiate_oauth` - Initiate OAuth PKCE flow
-
----
-
-## Example Usage
-
-### Create a new table:
 ```json
 {
-  "name": "quickbase_create_table",
-  "arguments": {
-    "name": "New Projects",
-    "description": "Project tracking table"
-  }
-}
-```
-
-### Add a field to a table:
-```json
-{
-  "name": "quickbase_create_field",
-  "arguments": {
-    "tableId": "bu65pc8px",
-    "label": "Project Status",
-    "fieldType": "text_choice",
-    "choices": ["Planning", "Active", "Complete", "On Hold"],
-    "required": true
-  }
-}
-```
-
-### Query records with filtering:
-```json
-{
-  "name": "quickbase_query_records",
-  "arguments": {
-    "tableId": "bu65pc8px",
-    "where": "{6.EX.'John'}",
-    "top": 10,
-    "sortBy": [{"fieldId": 3, "order": "DESC"}]
-  }
-}
-```
-
-### Create a new record:
-```json
-{
-  "name": "quickbase_create_record",
-  "arguments": {
-    "tableId": "bu65pc8px",
-    "fields": {
-      "6": {"value": "John Doe"},
-      "7": {"value": "123 Main St"},
-      "8": {"value": "john@example.com"}
+  "mcpServers": {
+    "quickbase": {
+      "command": "node",
+      "args": ["/absolute/path/to/QuickBase-MCP-Server/dist/index.js"],
+      "env": {
+        "QB_REALM": "mycompany.quickbase.com",
+        "QB_USER_TOKEN": "your_user_token_here",
+        "QB_READ_ONLY": "true"
+      }
     }
   }
 }
 ```
 
-## Field Types Supported
+Start with `QB_READ_ONLY=true` until you trust the agent with writes. After connecting, ask the agent to run `quickbase_test_connection`.
 
-- `text` - Single line text
-- `text_choice` - Single choice dropdown
-- `text_multiline` - Multi-line text
-- `richtext` - Rich text editor
-- `numeric` - Number field
-- `currency` - Currency field
-- `percent` - Percentage field
-- `date` - Date field
-- `datetime` - Date/time field
-- `checkbox` - Checkbox field
-- `email` - Email field
-- `phone` - Phone number field
-- `url` - URL field
-- `address` - Address field
-- `file` - File attachment
-- `lookup` - Lookup from another table
-- `formula` - Calculated field
-- `reference` - Table reference
+## Design
+
+```
+src/
+  index.ts            stdio entry point (stdout is the protocol; logs go to stderr)
+  server.ts           registers tools with the MCP SDK, maps errors to tool results
+  config.ts           env parsing and validation (zod)
+  errors.ts           typed errors and human-readable messages
+  quickbase/
+    client.ts         the only HTTP client: headers, timeout, retry/backoff, error mapping
+    query.ts          safe where-clause builders
+    records.ts        query / chunked upsert / delete helpers
+    pages.ts          legacy XML API for code pages (+ workspace-confined file reads)
+    codepages.ts      code-page-as-records conventions and static validation
+  tools/              one module per group: apps, tables, fields, records,
+                      relationships, reports, files, auth, pages, codepages
+```
+
+- **One REST client.** Base `https://api.quickbase.com/v1` with `QB-Realm-Hostname`, `Authorization: QB-USER-TOKEN …` and `User-Agent`. Timeouts use `AbortSignal`.
+- **Retries.** `429` is always retried and honors `Retry-After`. `5xx` and network errors are retried only for idempotent calls (GET, PUT, DELETE and `records/query`), so a flaky connection can never duplicate records. Exponential backoff with jitter, capped at 30 s.
+- **Errors.** Quickbase errors become tool errors (`isError: true`) with the status, message, `qb-api-ray` id and a hint. A bad call never crashes the server.
+- **Validation.** Every tool has a zod input schema. Ids are validated before they reach a URL, and `where` values are escaped.
+- **Safety.** Destructive schema tools (`delete_table`, `delete_field`) require `confirm: true`. `bulk_delete_records` refuses an empty `where`. Writes are chunked (500 records per request) and a failure partway through reports exactly what was already written.
+
+## Tools
+
+Tool names are unchanged from v1. In `QB_READ_ONLY=true` mode only the **read** tools are registered.
+
+| Tool | Kind | Description |
+| --- | --- | --- |
+| `quickbase_get_app_info` | read | Get information about a Quickbase application (name, dates, settings). |
+| `quickbase_test_connection` | read | Verify the realm and user token by listing the tables of the app. |
+| `quickbase_get_tables` | read | List all tables in the application. |
+| `quickbase_create_table` | write | Create a new table in the application. |
+| `quickbase_get_table_info` | read | Get detailed information about a table (key field, record name, etc.). |
+| `quickbase_delete_table` | destructive | Permanently delete a table and ALL its records. |
+| `quickbase_get_table_fields` | read | Get all fields of a table (id, label, type, mode, properties). |
+| `quickbase_create_field` | write | Create a field. |
+| `quickbase_update_field` | write | Update a field’s label, required flag or choices. |
+| `quickbase_delete_field` | destructive | Permanently delete a field and its data. |
+| `quickbase_query_records` | read | Query records with optional field selection, filter, sorting and paging. |
+| `quickbase_get_record` | read | Get one record by ID. |
+| `quickbase_create_record` | write | Create one record. |
+| `quickbase_update_record` | write | Update one record by ID. |
+| `quickbase_delete_record` | destructive | Delete one record by ID. |
+| `quickbase_bulk_create_records` | write | Create many records (max 5000 per call; sent in chunks of 500). |
+| `quickbase_bulk_update_records` | write | Update many records by ID (max 5000 per call). |
+| `quickbase_upsert_records` | write | Insert or update records matched on a key field (mergeFieldId). |
+| `quickbase_bulk_delete_records` | destructive | Delete all records matching a Quickbase query. |
+| `quickbase_search_records` | read | Find records whose text fields contain a term. |
+| `quickbase_create_relationship` | write | Create a parent-child relationship. |
+| `quickbase_get_relationships` | read | List the relationships in which the table is the child (the table holding the reference fields). |
+| `quickbase_create_advanced_relationship` | write | Create a one-to-many relationship with a labelled reference field and labelled lookup fields in one step. |
+| `quickbase_create_lookup_field` | write | Add a lookup field to the child table that pulls a parent field through an existing reference field. |
+| `quickbase_validate_relationship` | read | Check that a reference field exists in the child table and points at the given parent table. |
+| `quickbase_get_relationship_details` | read | List relationships of a table with their lookup fields resolved (labels and types) when includeFields is true. |
+| `quickbase_create_junction_table` | write | Create a junction table for a many-to-many relationship: a new table with a reference field to each of two tables. |
+| `quickbase_get_reports` | read | List all reports of a table. |
+| `quickbase_get_report` | read | Get the definition (query, columns, sorting) of one report. |
+| `quickbase_run_report` | read | Run a report and return its records ({data, fields, metadata}). |
+| `quickbase_list_files` | read | List all stored versions of the file in a file-attachment field of a record. |
+| `quickbase_download_file` | read | Download a file as base64. |
+| `quickbase_upload_file` | write | Upload a base64-encoded file into a file-attachment field of an existing record (adds a new version). |
+| `quickbase_delete_file` | destructive | Delete one version of a file in a file-attachment field. |
+| `quickbase_save_codepage` | write | Save a codepage (name + code) as a new record in the codepage table. |
+| `quickbase_deploy_codepage` | write | Save a codepage with metadata (version, tags, dependencies, target table). |
+| `quickbase_get_codepage` | read | Get a codepage record (parsed: name, code, version, tags, …). |
+| `quickbase_list_codepages` | read | List codepages. |
+| `quickbase_search_codepages` | read | Search codepages by name/description text, tags, target table or active status. |
+| `quickbase_update_codepage` | write | Update a codepage’s code, description, version or active flag. |
+| `quickbase_clone_codepage` | write | Clone a codepage under a new name. |
+| `quickbase_validate_codepage` | read | Static checks on HTML/JS: tag balance, <script> syntax (compiled, never executed), Quickbase API usage and security smells. |
+| `quickbase_export_codepage` | read | Export a codepage as html (code only), json (all fields) or markdown. |
+| `quickbase_import_codepage` | write | Import a codepage from an HTML document or a JSON export. |
+| `quickbase_execute_codepage` | read | Does NOT execute anything. |
+| `quickbase_save_codepage_version` | write | Store a version snapshot of a codepage in the version table (fields: 6 codepage record ID, 7 version, 8 code, 9 change log). |
+| `quickbase_get_codepage_versions` | read | Version history of a codepage, newest first. |
+| `quickbase_rollback_codepage` | write | Restore a codepage’s code from a version record. |
+| `deploy_codepage` | write | Create or replace a Quickbase code page from a local file. |
+| `get_codepage` | read | Fetch the stored content of a Quickbase code page by numeric ID or by name. |
+| `quickbase_initiate_oauth` | read | Build a Quickbase OAuth 2.0 authorization URL with PKCE (S256). |
+
+### Code pages
+
+Two mechanisms exist:
+
+1. **Real Quickbase code pages** (the `/db/<app>?a=API_AddReplaceDBPage` XML API): `deploy_codepage` and `get_codepage`. Deploy from the CLI too:
+
+   ```bash
+   QB_REALM=… QB_USER_TOKEN=… QB_APP_ID=… \
+     node dist/cli/deploy.js ./pages/index.html --name=index.html --type=1
+   ```
+
+   The source file must be inside `QB_WORKSPACE_DIR` (default: the working directory). Paths that escape it, including through symlinks, are rejected.
+
+2. **Code pages stored as records** (the `quickbase_*_codepage*` tools): a code library inside your own app, with version history, search, import/export and static validation. Create two tables and set `CODEPAGE_TABLE_ID` / `CODEPAGE_VERSION_TABLE_ID`.
+
+   | Code page table field | ID | Version table field | ID |
+   | --- | --- | --- | --- |
+   | name | 8 | created | 1 |
+   | version | 9 | codepage record id | 6 |
+   | tags | 10 | version | 7 |
+   | target table id | 11 | code | 8 |
+   | active | 12 | change log | 9 |
+   | code | 13 | | |
+   | description | 14 | | |
+   | dependencies | 15 | | |
+
+   `quickbase_validate_codepage` only **compiles** inline scripts (`vm.Script`); it never runs them. `quickbase_execute_codepage` does not execute code either; it returns the stored code for the client to run.
 
 ## Development
 
-### Run in development mode:
 ```bash
-npm run dev
+npm run typecheck   # tsc --noEmit
+npm run lint        # eslint
+npm test            # vitest, all HTTP mocked
+npm run build       # compile to dist/
+npm run check       # all of the above
 ```
 
-### Run tests:
-```bash
-npm test
-```
+Tests never touch the network. The previous live-API scripts are kept under `legacy/` for reference only.
 
-## Troubleshooting
+## Migrating from v1
 
-### Common Issues
+Tool names are the same. Behavior changes:
 
-1. **Authentication Error**
-   - Check your user token is correct
-   - Verify token permissions include your app
-   - Ensure realm hostname is correct
+- Node **22.12+** required. `dotenv`, `axios` and `jest` are gone. Config is env-only and `MCP_SERVER_NAME` / `MCP_SERVER_VERSION` are ignored.
+- `quickbase_query_records` (and run_report) return `{ data, fields, metadata }` instead of a bare array.
+- `quickbase_delete_table` and `quickbase_delete_field` need `confirm: true`.
+- `quickbase_create_relationship` takes `foreignKeyFieldLabel` (Quickbase creates the reference field); `foreignKeyFieldId` is rejected with a message.
+- `quickbase_create_advanced_relationship` rejects `many-to-many`; use `quickbase_create_junction_table`.
+- `quickbase_create_field` rejects `lookup` / `reference` types (use the relationship tools) and maps legacy type names (for example `text_choice` becomes `text-multiple-choice`).
+- Field and relationship endpoints that v1 called incorrectly now use the documented ones (for example `DELETE /fields?tableId=` with `fieldIds`).
+- Code page list/search omit the `code` body unless `includeCode: true`. `quickbase_rollback_codepage` takes a `versionTableId`. Version history is ordered by field 1 (created).
+- `get_codepage` and `quickbase_get_record` return parsed, flattened data.
+- `deploy_codepage.sourcePath` is confined to `QB_WORKSPACE_DIR`.
+- TLS verification is never disabled.
+- `quickbase_initiate_oauth` builds a real PKCE (S256) URL and returns the verifier.
+- New: `quickbase_get_report`, `QB_READ_ONLY`, `QB_MAX_RETRIES`.
+- Old root docs and live scripts moved to `docs/archive/root/` and `legacy/`.
 
-2. **Table/Field Not Found**
-   - Verify table/field IDs are correct
-   - Check if you have permissions to access
+## Security note
 
-3. **Field Creation Fails**
-   - Check field type is supported
-   - Verify choices are provided for choice fields
-   - Ensure formula syntax is correct for formula fields
-
-4. **Pricing Tool Save Fails (MCP)**
-  - Confirm `PRICING_TABLE_ID` is set or pass `tableId` argument explicitly
-  - Verify user token has access to pricing table
-  - Check field mapping (MSRP → 7, Final Price → 11)
-
-5. **Codepage Works But MCP Fails**
-  - Likely auth difference: session vs token; see `AUTH_DIFFERENCES.md`
-  - Ensure headers include `QB-Realm-Hostname`
-
-6. **"Self-signed certificate in certificate chain"**
-  - Export your corporate proxy/root certificate to a PEM file and reference it with `NODE_EXTRA_CA_CERTS=/path/to/root.pem` when running the server or tests (for example, `NODE_EXTRA_CA_CERTS=C:/certs/corp-root.pem npm test`).
-  - Keep TLS verification enabled; avoid `NODE_TLS_REJECT_UNAUTHORIZED=0` except for temporary diagnostics, as QuickBase requires validated HTTPS.
-  - See the [QuickBase Security & Compliance](https://developer.quickbase.com/platform/security) documentation for details on TLS requirements.
-
-### Auth Context Differences
-See `AUTH_DIFFERENCES.md` for a full comparison of session vs token authentication and when to use each path.
-
-### Enable Debug Logging
-Set environment variable:
-```bash
-DEBUG=quickbase-mcp:*
-```
-
-### Implementation Notes
-
-This server provides the maximum flexibility for QuickBase operations by:
-
-1. **Direct API Access** - Uses QuickBase REST API v1 directly
-2. **Complete Field Support** - Supports all QuickBase field types
-3. **Relationship Management** - Can create and manage table relationships
-4. **Bulk Operations** - Efficient bulk record operations
-5. **Advanced Querying** - Full QuickBase query syntax support
-6. **Error Handling** - Comprehensive error handling and retry logic
-
----
-
-## Codepage Development Platform
-
-The **QuickBase Codepage Development Platform** is a full-featured web-based IDE specifically designed for creating, testing, and deploying QuickBase codepages. It empowers business users and dealership staff to build interactive applications without deep technical expertise.
-
-### Key Features
-
-- **Template-Based Development** - Pre-built templates for common use cases (pricing calculators, inventory managers, customer forms)
-- **Monaco Code Editor** - Professional code editing with syntax highlighting and QuickBase API autocomplete
-- **Secure Sandbox Testing** - Test codepages safely without affecting production data
-- **Schema Management** - Visual interface for managing QuickBase tables, fields, and relationships
-- **Version Control** - Git-like version control with branching, merging, and conflict resolution
-- **Deployment Pipeline** - Multi-environment deployment (dev/staging/production) with rollback capabilities
-- **Real-time Collaboration** - WebSocket-based collaboration for team development
-- **Performance Analytics** - Monitor codepage performance and usage patterns
-
-### Architecture
-
-**Backend Stack:**
-- Node.js + Express + TypeScript
-- JWT authentication with role-based access control
-- VM2 sandbox for secure code execution
-- Redis for session management (production)
-- QuickBase MCP Server integration
-
-**Frontend Stack:**
-- React + TypeScript + Material-UI
-- Monaco Editor integration
-- React Query for state management
-- WebSocket for real-time features
-
-### Quick Start
-
-```bash
-cd platform
-cp .env.example .env
-# Edit .env with your QuickBase credentials
-./start.sh
-```
-
-The platform will be available at:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001/api
-
-### Use Cases
-
-**Vehicle Pricing Calculator** - Interactive pricing tool for car dealerships with:
-- Real-time inventory integration
-- Dynamic options and upgrades
-- Discount and incentive calculations
-- Financing calculations
-- Quote generation and saving
-
-**Inventory Management** - Custom inventory tracking with:
-- Real-time stock updates
-- Custom business logic
-- Automated workflows
-
-**Custom Business Applications** - Build any QuickBase application with:
-- Complex calculations
-- Data validation
-- Integration with external APIs
-- Custom user interfaces
-
-### Documentation
-
-Comprehensive documentation is available in the platform directory:
-
-- [Installation Guide](platform/docs/INSTALLATION.md)
-- [User Guide](platform/docs/USER_GUIDE.md)
-- [API Documentation](platform/docs/API.md)
-- [Deployment Guide](platform/docs/DEPLOYMENT.md)
-- [Troubleshooting](platform/docs/TROUBLESHOOTING.md)
-
-### Current Status
-
-The platform implementation is complete with full feature set including:
-- ✅ Complete backend API with authentication and authorization
-- ✅ Frontend React application with all major components
-- ✅ Template system with pre-built dealership templates
-- ✅ Secure sandbox testing environment
-- ✅ Schema management with relationship support
-- ✅ Version control and deployment pipeline
-- ✅ Comprehensive documentation
-- ✅ Backend compiles successfully with TypeScript
-- ✅ Shared type definitions completed
-
-**Development Status**: Most TypeScript compilation issues have been resolved. The backend compiles successfully. Frontend has minor type issues primarily related to unused imports and some test files that need updating to match component interfaces.
-
----
-
-## Repository Structure
-
-```
-QuickBase-MCP-Server/
-├── src/                    # MCP Server source code
-├── platform/               # Codepage Development Platform
-│   ├── backend/           # Node.js/Express API server
-│   ├── frontend/          # React application
-│   ├── shared/            # Shared TypeScript types
-│   ├── docs/              # Platform documentation
-│   └── README.md          # Platform documentation
-├── examples/              # Example codepages and usage
-└── README.md             # This file
-```
+An older revision of this repository contained a real user token in documentation and test files. It was removed in v2 but **remains in git history**. If you ever used that token, revoke it in Quickbase (My Preferences, Manage user tokens) and create a new one.
 
 ## License
 
-MIT License 
+MIT

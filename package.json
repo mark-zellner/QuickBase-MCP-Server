@@ -1,74 +1,62 @@
 {
   "name": "quickbase-mcp-server",
-  "version": "1.6.0",
-  "description": "A comprehensive Model Context Protocol (MCP) server for QuickBase integration with complete codepage lifecycle management. Build, test, deploy, and version control QuickBase codepages with AI assistance.",
-  "main": "dist/index.js",
+  "version": "2.0.0",
+  "description": "Model Context Protocol (MCP) server for the Quickbase JSON REST API: apps, tables, fields, records, relationships, reports, files and code pages.",
   "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "quickbase-mcp-server": "dist/index.js",
+    "quickbase-deploy-codepage": "dist/cli/deploy.js"
+  },
   "scripts": {
-    "build": "tsc --skipLibCheck",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
     "start": "node dist/index.js",
-    "start:mcp": "node dist/index.js",
-    "deploy:native": "npm run build && node dist/cli/deploy.js",
-    "dev": "tsc --skipLibCheck --watch & node --watch dist/index.js",
-    "test": "node tests/api/test-basic-api.js",
-    "test:codepages": "node tests/integration/test-codepage-tools.js",
-    "test:lifecycle": "npm run build && node tests/lifecycle/test-codepage-lifecycle.js",
-    "test:all": "npm run test && npm run test:lifecycle",
-    "test:jest": "jest",
-    "setup": "node scripts/setup/setup.js",
-    "deploy:codepage": "npm run build && node scripts/deployment/deploy-codepage.js",
-    "deploy:dealership": "npm run build && node scripts/deployment/deploy-codepage.js ./MyDealership.html",
-    "prepublishOnly": "npm run build && npm run test",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run check"
   },
   "files": [
-    "dist/**/*",
+    "dist",
     "README.md",
     "LICENSE",
-    "env.example"
+    ".env.example"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.4.0",
-    "axios": "^1.6.0",
-    "chalk": "^5.6.2",
-    "clipboardy": "^5.0.0",
-    "commander": "^14.0.2",
-    "dotenv": "^16.3.0",
-    "ora": "^9.0.0",
-    "zod": "^3.22.0"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/jest": "^29.0.0",
-    "@types/node": "^20.0.0",
-    "form-data": "^4.0.4",
-    "jest": "^29.0.0",
-    "ts-jest": "^29.0.0",
-    "typescript": "^5.0.0"
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^22.19.0",
+    "eslint": "^10.13.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "quickbase",
     "api",
     "database",
-    "model-context-protocol",
-    "automation",
-    "integration",
-    "crm",
-    "no-code",
     "low-code"
   ],
   "author": "Lawrence Cirillo",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/LawrenceCirillo/QuickBase-MCP-Server.git"
+    "url": "git+https://github.com/mark-zellner/QuickBase-MCP-Server.git"
   },
   "bugs": {
-    "url": "https://github.com/LawrenceCirillo/QuickBase-MCP-Server/issues"
+    "url": "https://github.com/mark-zellner/QuickBase-MCP-Server/issues"
   },
-  "homepage": "https://github.com/LawrenceCirillo/QuickBase-MCP-Server#readme",
+  "homepage": "https://github.com/mark-zellner/QuickBase-MCP-Server#readme",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.12.0"
   },
   "publishConfig": {
     "access": "public"
